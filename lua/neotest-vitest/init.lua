@@ -2,16 +2,16 @@
 local async = require("neotest.async")
 local lib = require("neotest.lib")
 local logger = require("neotest.logging")
-local util = require("neotest-jest.util")
+local util = require("neotest-vitest.util")
 
----@class neotest.JestOptions
----@field jestCommand? string|fun(): string
----@field jestConfigFile? string|fun(): string
+---@class neotest.VitestOptions
+---@field vitestCommand? string|fun(): string
+---@field vitestConfigFile? string|fun(): string
 ---@field env? table<string, string>|fun(): table<string, string>
 ---@field cwd? string|fun(): string
 
 ---@type neotest.Adapter
-local adapter = { name = "neotest-jest" }
+local adapter = { name = "neotest-vitest" }
 
 adapter.root = lib.files.match_root_pattern("package.json")
 
@@ -93,36 +93,36 @@ end
 
 ---@param path string
 ---@return string
-local function getJestCommand(path)
+local function getVitestCommand(path)
   local rootPath = util.find_node_modules_ancestor(path)
-  local jestBinary = util.path.join(rootPath, "node_modules", ".bin", "jest")
+  local vitestBinary = util.path.join(rootPath, "node_modules", ".bin", "vitest")
 
-  if util.path.exists(jestBinary) then
-    return jestBinary
+  if util.path.exists(vitestBinary) then
+    return vitestBinary
   end
 
-  return "jest"
+  return "vitest"
 end
 
-local jestConfigPattern = util.root_pattern("jest.config.{js,ts}")
+local vitestConfigPattern = util.root_pattern("vitest.config.{js,ts}")
 
 ---@param path string
 ---@return string|nil
-local function getJestConfig(path)
-  local rootPath = jestConfigPattern(path)
+local function getVitestConfig(path)
+  local rootPath = vitestConfigPattern(path)
 
   if not rootPath then
     return nil
   end
 
-  local jestJs = util.path.join(rootPath, "jest.config.js")
-  local jestTs = util.path.join(rootPath, "jest.config.ts")
+  local vitestJs = util.path.join(rootPath, "vitest.config.js")
+  local vitestTs = util.path.join(rootPath, "vitest.config.ts")
 
-  if util.path.exists(jestTs) then
-    return jestTs
+  if util.path.exists(vitestTs) then
+    return vitestTs
   end
 
-  return jestJs
+  return vitestJs
 end
 
 local function escapeTestPattern(s)
@@ -146,7 +146,7 @@ local function get_strategy_config(strategy, command)
   local config = {
     dap = function()
       return {
-        name = "Debug Jest Tests",
+        name = "Debug Vitest Tests",
         type = "pwa-node",
         request = "launch",
         args = { unpack(command, 2) },
@@ -192,8 +192,8 @@ function adapter.build_spec(args)
     testNamePattern = "'^" .. escapeTestPattern(pos.name) .. "'"
   end
 
-  local binary = getJestCommand(pos.path)
-  local config = getJestConfig(pos.path) or "jest.config.js"
+  local binary = getVitestCommand(pos.path)
+  local config = getVitestConfig(pos.path) or "vitest.config.js"
   local command = vim.split(binary, "%s+")
   if util.path.exists(config) then
     -- only use config if available
@@ -325,20 +325,20 @@ local is_callable = function(obj)
 end
 
 setmetatable(adapter, {
-  ---@param opts neotest.JestOptions
+  ---@param opts neotest.VitestOptions
   __call = function(_, opts)
-    if is_callable(opts.jestCommand) then
-      getJestCommand = opts.jestCommand
-    elseif opts.jestCommand then
-      getJestCommand = function()
-        return opts.jestCommand
+    if is_callable(opts.vitestCommand) then
+      getVitestCommand = opts.vitestCommand
+    elseif opts.vitestCommand then
+      getVitestCommand = function()
+        return opts.vitestCommand
       end
     end
-    if is_callable(opts.jestConfigFile) then
-      getJestConfig = opts.jestConfigFile
-    elseif opts.jestConfigFile then
-      getJestConfig = function()
-        return opts.jestConfigFile
+    if is_callable(opts.vitestConfigFile) then
+      getVitestConfig = opts.vitestConfigFile
+    elseif opts.vitestConfigFile then
+      getVitestConfig = function()
+        return opts.vitestConfigFile
       end
     end
     if is_callable(opts.env) then
