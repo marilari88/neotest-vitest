@@ -1,0 +1,16 @@
+{
+  "name": "spec",
+  "version": "1.0.0",
+  "description": "neotest-jest spec",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "jest": "^28.1.2",
+    "ts-node": "^10.8.2",
+    "typescript": "^4.7.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^28.1.4",
+    "@types/node": "^18.0.3"
+  }
+}
