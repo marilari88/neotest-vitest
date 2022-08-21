@@ -2,7 +2,7 @@
 
 This plugin provides a [Vitest](https://vitest.dev/) adapter for the [Neotest](https://github.com/rcarriga/neotest) framework.
 
-All credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
+Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
 
 ## Known issues
 - Wrong error location on collecting results - (this is related to Vitest reporting issue)
@@ -29,6 +29,7 @@ use({
 ```
 
 ## Usage
+![usage preview](https://user-images.githubusercontent.com/32909388/185812063-d05d9cc7-b9aa-43ed-915b-cf156e3f0c52.gif)
 
 See neotest's documentation for more information on how to run tests.
 
