@@ -201,11 +201,11 @@ function adapter.build_spec(args)
   end
 
   vim.list_extend(command, {
-    "run",
+    "--run",
     "--reporter=verbose",
     "--reporter=json",
     "--outputFile=" .. results_path,
-    "'--testNamePattern=" .. testNamePattern .. "'",
+    "--testNamePattern=" .. testNamePattern .. "",
     pos.path,
   })
 
