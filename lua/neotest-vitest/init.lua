@@ -253,9 +253,11 @@ local function parsed_json_to_results(data, output_file, consoleOut)
 
       local keyid = testFn
 
-      --[[ for _, value in ipairs(assertionResult.ancestorTitles) do ]]
-      --[[   keyid = keyid .. "::" .. value ]]
-      --[[ end ]]
+      for _, value in ipairs(assertionResult.ancestorTitles) do
+        if value ~= "" then
+          keyid = keyid .. "::" .. value
+        end
+      end
 
       keyid = keyid .. "::" .. name
 
