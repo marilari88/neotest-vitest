@@ -45,14 +45,14 @@ function adapter.discover_positions(path)
     ; Matches: `describe('context')`
     ((call_expression
       function: (identifier) @func_name (#eq? @func_name "describe")
-      arguments: (arguments (string (string_fragment) @namespace.name) (arrow_function))
+      arguments: (arguments [(template_string) @namespace.name (string (string_fragment) @namespace.name)]  [(arrow_function) (function)])
     )) @namespace.definition
     ; Matches: `describe.only('context')`
     ((call_expression
       function: (member_expression
         object: (identifier) @func_name (#any-of? @func_name "describe")
       )
-      arguments: (arguments (string (string_fragment) @namespace.name) (arrow_function))
+      arguments: (arguments [(template_string) @namespace.name (string (string_fragment) @namespace.name)]  [(arrow_function) (function)])
     )) @namespace.definition
     ; Matches: `describe.each(['data'])('context')`
     ((call_expression
@@ -61,21 +61,21 @@ function adapter.discover_positions(path)
           object: (identifier) @func_name (#any-of? @func_name "describe")
         )
       )
-      arguments: (arguments (string (string_fragment) @namespace.name) (arrow_function))
+      arguments: (arguments [(template_string) @namespace.name (string (string_fragment) @namespace.name)]  [(arrow_function) (function)])
     )) @namespace.definition
 
     ; -- Tests --
     ; Matches: `test('test') / it('test')`
     ((call_expression
       function: (identifier) @func_name (#any-of? @func_name "it" "test")
-      arguments: (arguments (string (string_fragment) @test.name) (arrow_function))
+      arguments: (arguments [(template_string) @test.name (string (string_fragment) @test.name)]  [(arrow_function) (function)])
     )) @test.definition
     ; Matches: `test.only('test') / it.only('test')`
     ((call_expression
       function: (member_expression
         object: (identifier) @func_name (#any-of? @func_name "test" "it")
       )
-      arguments: (arguments (string (string_fragment) @test.name) (arrow_function))
+      arguments: (arguments [(template_string) @test.name (string (string_fragment) @test.name)]  [(arrow_function) (function)])
     )) @test.definition
     ; Matches: `test.each(['data'])('test') / it.each(['data'])('test')`
     ((call_expression
@@ -84,7 +84,7 @@ function adapter.discover_positions(path)
           object: (identifier) @func_name (#any-of? @func_name "it" "test")
         )
       )
-      arguments: (arguments (string (string_fragment) @test.name) (arrow_function))
+      arguments: (arguments [(template_string) @test.name (string (string_fragment) @test.name)]  [(arrow_function) (function)])
     )) @test.definition
   ]]
 
@@ -125,7 +125,23 @@ local function getVitestConfig(path)
   return vitestJs
 end
 
-local function escapeTestPattern(s)
+---@param s string
+---@param boolean
+local function isTemplateLiteral(s)
+  return string.sub(s, 1, 1) == "`"
+end
+
+---@param s string
+---@param string
+local function getStringFromTemplateLiteral(s)
+  return string.match(s, "^`(.*)`$")
+end
+
+local function prepareTestPattern(s)
+  if isTemplateLiteral(s) then
+    s = getStringFromTemplateLiteral(s)
+  end
+
   return (
     s
       :gsub("%(", "%\\(")
@@ -139,6 +155,14 @@ local function escapeTestPattern(s)
       :gsub("%$", "%\\$")
       :gsub("%^", "%\\^")
       :gsub("%/", "%\\/")
+      :gsub("%\\${.*}", ".*") -- template literal ${var}
+      :gsub("%%s", "\\w*") -- test each %s string param
+      :gsub("%%i", "\\d*") -- test each %i integer param
+      :gsub("%%d", ".*") -- test each %d number param
+      :gsub("%%f", ".*") -- test each %f float param
+      :gsub("%%j", ".*") -- test each %j json param
+      :gsub("%%o", ".*") -- test each %o object param
+      :gsub("%%#", "\\d*") -- test each %# index param
   )
 end
 
@@ -185,11 +209,11 @@ function adapter.build_spec(args)
   local testNamePattern = ".*"
 
   if pos.type == "test" then
-    testNamePattern = escapeTestPattern(pos.name) .. "$"
+    testNamePattern = prepareTestPattern(pos.name) .. "$"
   end
 
   if pos.type == "namespace" then
-    testNamePattern = "^ " .. escapeTestPattern(pos.name)
+    testNamePattern = "^ " .. prepareTestPattern(pos.name)
   end
 
   local binary = getVitestCommand(pos.path)
