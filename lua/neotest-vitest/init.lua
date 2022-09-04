@@ -13,7 +13,37 @@ local util = require("neotest-vitest.util")
 ---@type neotest.Adapter
 local adapter = { name = "neotest-vitest" }
 
-adapter.root = lib.files.match_root_pattern("package.json")
+---@param path string
+---@return boolean
+local function hasVitestDependency(path)
+  local rootPath = util.find_package_json_ancestor(path)
+  local packageJsonContent = lib.files.read(rootPath .. "/package.json")
+  local parsedPackageJson = vim.json.decode(packageJsonContent)
+
+  for key, _ in pairs(parsedPackageJson["dependencies"]) do
+    if key == "vitest" then
+      return true
+    end
+  end
+
+  for key, _ in pairs(parsedPackageJson["devDependencies"]) do
+    if key == "vitest" then
+      return true
+    end
+  end
+
+  return false
+end
+
+local function getRoot(path)
+  if not hasVitestDependency(path) then
+    return
+  end
+
+  return lib.files.match_root_pattern("package.json")(path)
+end
+
+adapter.root = getRoot
 
 ---@param file_path? string
 ---@return boolean
