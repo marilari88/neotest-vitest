@@ -127,8 +127,7 @@ end
 
 local function escapeTestPattern(s)
   return (
-    s
-      :gsub("%(", "%\\(")
+    s:gsub("%(", "%\\(")
       :gsub("%)", "%\\)")
       :gsub("%]", "%\\]")
       :gsub("%[", "%\\[")
