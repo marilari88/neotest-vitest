@@ -20,7 +20,7 @@ end)
 
 describe("discover_positions", function()
   async.it("provides meaningful names from a basic spec", function()
-    local positions = plugin.discover_positions("../spec/basic.test.ts"):to_list()
+    local positions = plugin.discover_positions("./spec/basic.test.ts"):to_list()
 
     local expected_output = {
       {
@@ -152,7 +152,7 @@ describe("build_spec", function()
     assert.contains(command, "vitest")
     assert.contains(command, "--run")
     assert.contains(command, "--reporter=verbose")
-    assert.contains(command, "--testNamePattern=%^describe text")
+    assert.contains(command, "--testNamePattern=^ describe text")
     assert.contains(command, "./spec/basic.test.ts")
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
