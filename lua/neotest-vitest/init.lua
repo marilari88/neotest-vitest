@@ -13,11 +13,12 @@ local util = require("neotest-vitest.util")
 ---@type neotest.Adapter
 local adapter = { name = "neotest-vitest" }
 
+---@param path string
+---@return boolean
 local function hasVitestDependency(path)
   local rootPath = util.find_package_json_ancestor(path)
   local packageJsonContent = lib.files.read(rootPath .. "/package.json")
   local parsedPackageJson = vim.json.decode(packageJsonContent)
-  --[[ vim.pretty_print(parsedPackageJson) ]]
 
   for key, _ in pairs(parsedPackageJson["dependencies"]) do
     if key == "vitest" then
