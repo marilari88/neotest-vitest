@@ -138,7 +138,7 @@ describe("build_spec", function()
   end)
 
   async.it("builds command for namespace", function()
-  . local positions = plugin.discover_positions("./spec/basic.test.ts"):to_list()
+    local positions = plugin.discover_positions("./spec/basic.test.ts"):to_list()
 
     local tree = Tree.from_list(positions, function(pos)
       return pos.id
