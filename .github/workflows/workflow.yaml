@@ -21,6 +21,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           # CLI arguments
           args: --color always --check .
+          version: 0.14.2
   unit_tests:
     name: unit tests
     runs-on: ${{ matrix.os }}
