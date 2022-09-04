@@ -1,3 +1,5 @@
+import { describe, it, test } from 'vitest'
+
 describe("describe text", () => {
   it.each([1, 2, 3])("Array1", () => {
     console.log("do test");

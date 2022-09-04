@@ -1,3 +1,5 @@
+import { describe ,it ,test } from 'vitest'
+
 describe("describe text", () => {
   it("1", () => {
     console.log("do test");
