@@ -37,6 +37,32 @@ function adapter.is_test_file(file_path)
   return false
 end
 
+---@param s string
+---@param boolean
+local function isTemplateLiteral(s)
+  return string.sub(s, 1, 1) == "`"
+end
+
+---@param s string
+---@param string
+local function getStringFromTemplateLiteral(s)
+  local matched = string.match(s, "^`(.*)`$")
+  if not matched then
+    return s
+  end
+  return (
+    matched
+      :gsub("%${.*}", ".*") -- template literal ${var}
+      :gsub("%%s", "\\w*") -- test each %s string param
+      :gsub("%%i", "\\d*") -- test each %i integer param
+      :gsub("%%d", ".*") -- test each %d number param
+      :gsub("%%f", ".*") -- test each %f float param
+      :gsub("%%j", ".*") -- test each %j json param
+      :gsub("%%o", ".*") -- test each %o object param
+      :gsub("%%#", "\\d*") -- test each %# index param
+  )
+end
+
 ---@async
 ---@return neotest.Tree | nil
 function adapter.discover_positions(path)
@@ -88,7 +114,50 @@ function adapter.discover_positions(path)
     )) @test.definition
   ]]
 
-  return lib.treesitter.parse_positions(path, query, { nested_tests = true })
+  local parsedTree = lib.treesitter.parse_positions(path, query, { nested_tests = true })
+
+  -- trovare il nodo da aggiornare
+  -- creare un nuovo nodo con la nuova chiave (verificare la posizione del nodo)
+  -- recuperare il parent
+  -- aggiornare il children del padre
+  -- cancellare vecchio nodo
+  for _, node in parsedTree:iter_nodes() do
+    if #node:children() > 0 then
+      for _, pos in node:iter_nodes() do
+        if pos:data().type == "test" then
+          local test = pos:data()
+          if isTemplateLiteral(test.name) then
+            local testNode = parsedTree:get_key(test.id)
+            local originalId = test.id
+            if not testNode then
+              return
+            end
+            local parent = testNode:parent()
+            if not parent then
+              return
+            end
+
+            test.name = getStringFromTemplateLiteral(test.name)
+            test.id = test.path .. "::" .. test.name
+            print(getStringFromTemplateLiteral("`ciao belli ${fa}`"))
+            print(test.id)
+
+            --[[ vim.pretty_print(parent) ]]
+            --[[ vim.pretty_print(parent._children) ]]
+            --[[ vim.pretty_print(parent._children[1]) ]]
+            for i, child in pairs(parent._children) do
+              if originalId == child:data().id then
+                parent._children[i]:data().id = test.id
+              end
+            end
+            testNode._parent = parent
+          end
+        end
+      end
+    end
+  end
+
+  return parsedTree
 end
 
 ---@param path string
@@ -126,43 +195,20 @@ local function getVitestConfig(path)
 end
 
 ---@param s string
----@param boolean
-local function isTemplateLiteral(s)
-  return string.sub(s, 1, 1) == "`"
-end
-
----@param s string
 ---@param string
-local function getStringFromTemplateLiteral(s)
-  return string.match(s, "^`(.*)`$")
-end
-
 local function prepareTestPattern(s)
-  if isTemplateLiteral(s) then
-    s = getStringFromTemplateLiteral(s)
-  end
-
   return (
     s
       :gsub("%(", "%\\(")
       :gsub("%)", "%\\)")
       :gsub("%]", "%\\]")
       :gsub("%[", "%\\[")
-      :gsub("%*", "%\\*")
       :gsub("%+", "%\\+")
       :gsub("%-", "%\\-")
       :gsub("%?", "%\\?")
       :gsub("%$", "%\\$")
       :gsub("%^", "%\\^")
       :gsub("%/", "%\\/")
-      :gsub("%\\${.*}", ".*") -- template literal ${var}
-      :gsub("%%s", "\\w*") -- test each %s string param
-      :gsub("%%i", "\\d*") -- test each %i integer param
-      :gsub("%%d", ".*") -- test each %d number param
-      :gsub("%%f", ".*") -- test each %f float param
-      :gsub("%%j", ".*") -- test each %j json param
-      :gsub("%%o", ".*") -- test each %o object param
-      :gsub("%%#", "\\d*") -- test each %# index param
   )
 end
 
@@ -289,12 +335,14 @@ local function parsed_json_to_results(data, output_file, consoleOut)
         status = "skipped"
       end
 
-      tests[keyid] = {
-        status = status,
-        short = name .. ": " .. status,
-        output = consoleOut,
-        location = assertionResult.location,
-      }
+      if status ~= "skipped" then
+        tests[keyid] = {
+          status = status,
+          short = name .. ": " .. status,
+          output = consoleOut,
+          location = assertionResult.location,
+        }
+      end
 
       if not vim.tbl_isempty(assertionResult.failureMessages) then
         local errors = {}
