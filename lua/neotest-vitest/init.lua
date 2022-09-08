@@ -17,25 +17,35 @@ local adapter = { name = "neotest-vitest" }
 ---@return boolean
 local function hasVitestDependency(path)
   local rootPath = util.find_package_json_ancestor(path)
+
+  if not lib.files.exists(rootPath .. "/package.json") then
+    print("package.json not found")
+    return false
+  end
+
   local packageJsonContent = lib.files.read(rootPath .. "/package.json")
   local parsedPackageJson = vim.json.decode(packageJsonContent)
 
-  for key, _ in pairs(parsedPackageJson["dependencies"]) do
-    if key == "vitest" then
-      return true
+  if parsedPackageJson["dependencies"] ~= nil then
+    for key, _ in pairs(parsedPackageJson["dependencies"]) do
+      if key == "vitest" then
+        return true
+      end
     end
   end
 
-  for key, _ in pairs(parsedPackageJson["devDependencies"]) do
-    if key == "vitest" then
-      return true
+  if parsedPackageJson["devDependencies"] ~= nil then
+    for key, _ in pairs(parsedPackageJson["devDependencies"]) do
+      if key == "vitest" then
+        return true
+      end
     end
   end
 
   return false
 end
 
-local function getRoot(path)
+adapter.root = function(path)
   if not hasVitestDependency(path) then
     return
   end
