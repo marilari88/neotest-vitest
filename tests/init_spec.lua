@@ -1,12 +1,22 @@
 local async = require("plenary.async.tests")
+local Tree = require("neotest.types").Tree
 local plugin = require("neotest-vitest")({
   vitestCommand = "vitest",
 })
-local Tree = require("neotest.types").Tree
 require("neotest-vitest-assertions")
 A = function(...)
   print(vim.inspect(...))
 end
+
+describe("adapter enabled", function()
+  async.it("enable adapter", function()
+    assert.Not.Nil(plugin.root("./spec"))
+  end)
+
+  async.it("disable adapter", function()
+    assert.Nil(plugin.root("./spec-jest"))
+  end)
+end)
 
 describe("is_test_file", function()
   it("matches vitest files", function()

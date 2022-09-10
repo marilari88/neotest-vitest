@@ -23,10 +23,15 @@ local function hasVitestDependency(path)
     return false
   end
 
-  local packageJsonContent = lib.files.read(rootPath .. "/package.json")
+  local success, packageJsonContent = pcall(lib.files.read, rootPath .. "/package.json")
+  if not success then
+    print("cannot read package.json")
+    return false
+  end
+
   local parsedPackageJson = vim.json.decode(packageJsonContent)
 
-  if parsedPackageJson["dependencies"] ~= nil then
+  if parsedPackageJson["dependencies"] then
     for key, _ in pairs(parsedPackageJson["dependencies"]) do
       if key == "vitest" then
         return true
@@ -34,7 +39,7 @@ local function hasVitestDependency(path)
     end
   end
 
-  if parsedPackageJson["devDependencies"] ~= nil then
+  if parsedPackageJson["devDependencies"] then
     for key, _ in pairs(parsedPackageJson["devDependencies"]) do
       if key == "vitest" then
         return true
@@ -52,8 +57,6 @@ adapter.root = function(path)
 
   return lib.files.match_root_pattern("package.json")(path)
 end
-
-adapter.root = getRoot
 
 ---@param file_path? string
 ---@return boolean
