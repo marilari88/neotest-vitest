@@ -26,7 +26,6 @@ local function hasVitestDependency(path)
   local success, packageJsonContent = pcall(lib.files.read, rootPath .. "/package.json")
   if not success then
     print("cannot read package.json")
-    vim.pretty_print(packageJsonContent)
     return false
   end
 
