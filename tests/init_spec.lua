@@ -16,6 +16,10 @@ describe("is_test_file", function()
   it("does not match plain js files", function()
     assert.False(plugin.is_test_file("./index.ts"))
   end)
+
+  it("does not match file name ending with test", function()
+    assert.False(plugin.is_test_file("./setupVitest.ts"))
+  end)
 end)
 
 describe("discover_positions", function()
