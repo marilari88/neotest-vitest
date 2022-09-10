@@ -5,9 +5,8 @@ This plugin provides a [Vitest](https://vitest.dev/) adapter for the [Neotest](h
 Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
 
 ## Known issues
-- Wrong error location on collecting results - (this is related to Vitest reporting issue)
-- test.each is currently not well supported
-- Weird behaviors when either neotest-jest is installed at same time (they share same test parsing logic)
+- ~~Wrong error location on collecting results - (this is related to Vitest reporting issue)~~ (solved by Vitest 0.23.0)
+- test.each is currently not well supported (currently )
 
 ## How to install it
 ```
