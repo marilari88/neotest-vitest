@@ -81,6 +81,46 @@ function adapter.is_test_file(file_path)
 end
 
 ---@async
+local function parseTest(path)
+  local command = {
+    "jest-parser-cli",
+    path,
+  }
+
+  local tableTest = {}
+
+  local success, data = lib.process.run(command, { stdout = true, stderr = true })
+  vim.pretty_print(data.stdout)
+
+  --[[ vim.fn.jobstart(command, { ]]
+  --[[   stdout_buffered = true, ]]
+  --[[   on_stdout = function(_, data) ]]
+  --[[     if data ~= "" then ]]
+  --[[       for i, value in pairs(data) do ]]
+  --[[         print("prima di decodare") ]]
+  --[[         local success, rootData = pcall(vim.json.decode, value) ]]
+  --[[         print("decodato") ]]
+  --[[         if success then ]]
+  --[[           for i, itBlocks in pairs(rootData["itBlocks"]) do ]]
+  --[[             print("ooo") ]]
+  --[[             table.insert(tableTest, { ]]
+  --[[               name = "cicio", ]]
+  --[[             }) ]]
+  --[[           end ]]
+  --[[         end ]]
+  --[[       end ]]
+  --[[     end ]]
+  --[[   end, ]]
+  --[[   on_stderr = function(_, error) ]]
+  --[[     if error ~= "" then ]]
+  --[[       vim.pretty_print(error[0]) ]]
+  --[[     end ]]
+  --[[   end, ]]
+  --[[ }) ]]
+  return tableTest
+end
+
+---@async
 ---@return neotest.Tree | nil
 function adapter.discover_positions(path)
   local query = [[
@@ -131,7 +171,11 @@ function adapter.discover_positions(path)
     )) @test.definition
   ]]
 
-  return lib.treesitter.parse_positions(path, query, { nested_tests = true })
+  local a = lib.treesitter.parse_positions(path, query, { nested_tests = true })
+  --[[ local testList = parseTest(path) ]]
+  --[[ vim.pretty_print(testList) ]]
+
+  return a
 end
 
 ---@param path string
