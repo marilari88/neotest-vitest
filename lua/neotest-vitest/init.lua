@@ -58,6 +58,10 @@ adapter.root = function(path)
   return lib.files.match_root_pattern("package.json")(path)
 end
 
+function adapter.filter_dir(name)
+  return name ~= "node_modules"
+end
+
 ---@param file_path? string
 ---@return boolean
 function adapter.is_test_file(file_path)
