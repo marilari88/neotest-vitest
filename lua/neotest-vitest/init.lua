@@ -18,7 +18,7 @@ local adapter = { name = "neotest-vitest" }
 local function hasVitestDependency(path)
   local rootPath = util.find_package_json_ancestor(path)
 
-  if not lib.files.exists(rootPath .. "/package.json") then
+  if not (rootPath ~= nil and lib.files.exists(rootPath .. "/package.json")) then
     print("package.json not found")
     return false
   end
