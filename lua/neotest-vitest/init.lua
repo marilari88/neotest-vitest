@@ -80,6 +80,41 @@ function adapter.is_test_file(file_path)
   return false
 end
 
+local function parseParent(parentTable)
+  local T = {}
+  if parentTable["children"] then
+    print("esamino ")
+    vim.pretty_print(parentTable)
+    for _, children in pairs(parentTable["children"]) do
+      local type
+      if children.type == "describe" then
+        type = "namespace"
+      else
+        type = "test"
+      end
+
+      table.insert(T, {
+        type = type,
+        path = children.file,
+        name = children.name,
+        range = {
+          children["start"]["column"],
+          children["start"]["line"],
+          children["end"]["column"],
+          children["end"]["line"],
+        },
+      })
+
+      local childrenNodes
+      if children["children"] then
+        childrenNodes = parseParent(children)
+      end
+      table.insert(T, childrenNodes)
+    end
+  end
+  return vim.tbl_flatten(T)
+end
+
 ---@async
 local function parseTest(path)
   local command = {
@@ -88,35 +123,31 @@ local function parseTest(path)
   }
 
   local tableTest = {}
-
-  local success, data = lib.process.run(command, { stdout = true, stderr = true })
-  vim.pretty_print(data.stdout)
-
-  --[[ vim.fn.jobstart(command, { ]]
-  --[[   stdout_buffered = true, ]]
-  --[[   on_stdout = function(_, data) ]]
-  --[[     if data ~= "" then ]]
-  --[[       for i, value in pairs(data) do ]]
-  --[[         print("prima di decodare") ]]
-  --[[         local success, rootData = pcall(vim.json.decode, value) ]]
-  --[[         print("decodato") ]]
-  --[[         if success then ]]
-  --[[           for i, itBlocks in pairs(rootData["itBlocks"]) do ]]
-  --[[             print("ooo") ]]
-  --[[             table.insert(tableTest, { ]]
-  --[[               name = "cicio", ]]
-  --[[             }) ]]
-  --[[           end ]]
-  --[[         end ]]
-  --[[       end ]]
-  --[[     end ]]
-  --[[   end, ]]
-  --[[   on_stderr = function(_, error) ]]
-  --[[     if error ~= "" then ]]
-  --[[       vim.pretty_print(error[0]) ]]
-  --[[     end ]]
-  --[[   end, ]]
-  --[[ }) ]]
+  local jobId = vim.fn.jobstart(command, {
+    stdout_buffered = true,
+    on_stdout = function(_, data)
+      if data ~= "" then
+        for _, value in pairs(data) do
+          local success, rootData = pcall(vim.json.decode, value)
+          if success and rootData["root"]["children"] then
+            table.insert(tableTest, {
+              id = rootData["file"],
+              type = "file",
+              path = rootData["file"],
+              name = rootData["file"],
+            })
+            table.insert(tableTest, parseParent(rootData["root"]))
+          end
+        end
+      end
+    end,
+    on_stderr = function(_, error)
+      if error ~= "" then
+        vim.pretty_print(error[0])
+      end
+    end,
+  })
+  vim.fn.jobwait({ jobId })
   return tableTest
 end
 
@@ -171,15 +202,14 @@ function adapter.discover_positions(path)
     )) @test.definition
   ]]
 
-  local a = lib.treesitter.parse_positions(path, query, { nested_tests = true })
-  --[[ local testList = parseTest(path) ]]
-  --[[ vim.pretty_print(testList) ]]
+  --[[ local a = lib.treesitter.parse_positions(path, query, { nested_tests = true }) ]]
+  local testList = parseTest(path)
 
-  return a
+  return lib.positions.parse_tree(testList, { nested_tests = true })
 end
 
----@param path string
 ---@return string
+---@param path string
 local function getVitestCommand(path)
   local rootPath = util.find_node_modules_ancestor(path)
   local vitestBinary = util.path.join(rootPath, "node_modules", ".bin", "vitest")
