@@ -17,7 +17,7 @@ describe("adapter enabled", function()
     assert.Nil(plugin.root("./spec-jest"))
   end)
 
-  async.it("disable adapter no package.json", function ()
+  async.it("disable adapter no package.json", function()
     assert.Nil(plugin.root("."))
   end)
 end)
