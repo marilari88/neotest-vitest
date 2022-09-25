@@ -3,6 +3,7 @@ local async = require("neotest.async")
 local lib = require("neotest.lib")
 local logger = require("neotest.logging")
 local util = require("neotest-vitest.util")
+local Tree = require("neotest.types").Tree
 
 ---@class neotest.VitestOptions
 ---@field vitestCommand? string|fun(): string
@@ -80,39 +81,38 @@ function adapter.is_test_file(file_path)
   return false
 end
 
-local function parseParent(parentTable)
+local function parseNode(nodeTable, parentId)
   local T = {}
-  if parentTable["children"] then
-    print("esamino ")
-    vim.pretty_print(parentTable)
-    for _, children in pairs(parentTable["children"]) do
-      local type
-      if children.type == "describe" then
-        type = "namespace"
-      else
-        type = "test"
-      end
+  for _, node in pairs(nodeTable) do
+    local id = parentId .. "::" .. node["name"]
 
-      table.insert(T, {
-        type = type,
-        path = children.file,
-        name = children.name,
-        range = {
-          children["start"]["column"],
-          children["start"]["line"],
-          children["end"]["column"],
-          children["end"]["line"],
-        },
-      })
+    local type
+    if node.type == "describe" then
+      type = "namespace"
+    else
+      type = "test"
+    end
 
-      local childrenNodes
-      if children["children"] then
-        childrenNodes = parseParent(children)
+    table.insert(T, {
+      id = id,
+      type = type,
+      path = node.file,
+      name = node.name,
+      range = {
+        node["start"]["line"] - 1,
+        node["start"]["column"] - 1,
+        node["end"]["line"] - 1,
+        node["end"]["column"] - 1,
+      },
+    })
+
+    if node["children"] then
+      for _, child in pairs(node["children"]) do
+        table.insert(T, parseNode({ child }, id))
       end
-      table.insert(T, childrenNodes)
     end
   end
-  return vim.tbl_flatten(T)
+  return T
 end
 
 ---@async
@@ -121,8 +121,10 @@ local function parseTest(path)
     "jest-parser-cli",
     path,
   }
+  local sep = require("neotest.lib").files.sep
+  local path_elems = vim.split(path, sep, { plain = true })
 
-  local tableTest = {}
+  local rootTable = {}
   local jobId = vim.fn.jobstart(command, {
     stdout_buffered = true,
     on_stdout = function(_, data)
@@ -130,13 +132,13 @@ local function parseTest(path)
         for _, value in pairs(data) do
           local success, rootData = pcall(vim.json.decode, value)
           if success and rootData["root"]["children"] then
-            table.insert(tableTest, {
+            table.insert(rootTable, {
               id = rootData["file"],
               type = "file",
               path = rootData["file"],
-              name = rootData["file"],
+              name = path_elems[#path_elems],
             })
-            table.insert(tableTest, parseParent(rootData["root"]))
+            table.insert(rootTable, parseNode(rootData["root"]["children"], rootData["file"]))
           end
         end
       end
@@ -148,7 +150,7 @@ local function parseTest(path)
     end,
   })
   vim.fn.jobwait({ jobId })
-  return tableTest
+  return rootTable
 end
 
 ---@async
@@ -202,10 +204,14 @@ function adapter.discover_positions(path)
     )) @test.definition
   ]]
 
-  --[[ local a = lib.treesitter.parse_positions(path, query, { nested_tests = true }) ]]
-  local testList = parseTest(path)
+  local a = lib.treesitter.parse_positions(path, query, { nested_tests = true })
+  --[[ check build spec for parser ]]
+  --[[ return a  in case of treesitter]]
 
-  return lib.positions.parse_tree(testList, { nested_tests = true })
+  local testList = parseTest(path)
+  return Tree.from_list(testList, function()
+    return path
+  end)
 end
 
 ---@return string
