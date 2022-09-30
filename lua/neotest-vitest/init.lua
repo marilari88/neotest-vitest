@@ -275,14 +275,6 @@ local function cleanAnsi(s)
     :gsub("\x1b%[%d+m", "")
 end
 
-local function findErrorPosition(file, errStr)
-  -- Look for: /path/to/file.js:123:987
-  local regexp = file:gsub("([^%w])", "%%%1") .. "%:(%d+)%:(%d+)"
-  local _, _, errLine, errColumn = string.find(errStr, regexp)
-
-  return errLine, errColumn
-end
-
 local function parsed_json_to_results(data, output_file, consoleOut)
   local tests = {}
 
@@ -323,11 +315,10 @@ local function parsed_json_to_results(data, output_file, consoleOut)
 
         for i, failMessage in ipairs(assertionResult.failureMessages) do
           local msg = cleanAnsi(failMessage)
-          local errorLine, errorColumn = findErrorPosition(testFn, msg)
 
           errors[i] = {
-            line = (errorLine or assertionResult.location.line) - 1,
-            column = (errorColumn or 1) - 1,
+            line = (assertionResult.location and assertionResult.location.line - 1 or nil),
+            column = (assertionResult.location and assertionResult.location.column or nil),
             message = msg,
           }
 
