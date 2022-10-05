@@ -6,7 +6,7 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
 
 ## Known issues
 - ~~Wrong error location on collecting results - (this is related to Vitest reporting issue)~~ (solved by Vitest 0.23.0)
-- test.each is currently not well supported (currently )
+- test.each is currently not well supported (WIP)
 
 ## How to install it
 ```
