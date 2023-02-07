@@ -51,10 +51,6 @@ local function hasVitestDependency(path)
 end
 
 adapter.root = function(path)
-  if not hasVitestDependency(path) then
-    return
-  end
-
   return lib.files.match_root_pattern("package.json")(path)
 end
 
@@ -66,6 +62,10 @@ end
 ---@return boolean
 function adapter.is_test_file(file_path)
   if file_path == nil then
+    return false
+  end
+
+  if not hasVitestDependency(file_path) then
     return false
   end
 
