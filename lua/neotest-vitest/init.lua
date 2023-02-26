@@ -18,7 +18,6 @@ local adapter = { name = "neotest-vitest" }
 local function hasVitestDependency(path)
   local rootPath = lib.files.match_root_pattern("package.json")(path)
 
-  -- print(rootPath)
   if not (rootPath) then
     -- print("package.json not found")
     return false
@@ -80,7 +79,7 @@ function adapter.is_test_file(file_path)
       end
     end
   end
-::matched_pattern::
+  ::matched_pattern::
   if (is_test_file or is_test_folder) and hasVitestDependency(file_path) then
     return true
   end
@@ -178,7 +177,7 @@ end
 
 local function escapeTestPattern(s)
   return (
-      s:gsub("%(", "%\\(")
+    s:gsub("%(", "%\\(")
       :gsub("%)", "%\\)")
       :gsub("%]", "%\\]")
       :gsub("%[", "%\\[")
@@ -189,7 +188,7 @@ local function escapeTestPattern(s)
       :gsub("%$", "%\\$")
       :gsub("%^", "%\\^")
       :gsub("%/", "%\\/")
-      )
+  )
 end
 
 local function get_strategy_config(strategy, command)
@@ -273,10 +272,10 @@ end
 
 local function cleanAnsi(s)
   return s:gsub("\x1b%[%d+;%d+;%d+;%d+;%d+m", "")
-      :gsub("\x1b%[%d+;%d+;%d+;%d+m", "")
-      :gsub("\x1b%[%d+;%d+;%d+m", "")
-      :gsub("\x1b%[%d+;%d+m", "")
-      :gsub("\x1b%[%d+m", "")
+    :gsub("\x1b%[%d+;%d+;%d+;%d+m", "")
+    :gsub("\x1b%[%d+;%d+;%d+m", "")
+    :gsub("\x1b%[%d+;%d+m", "")
+    :gsub("\x1b%[%d+m", "")
 end
 
 local function parsed_json_to_results(data, output_file, consoleOut)
