@@ -16,10 +16,11 @@ local adapter = { name = "neotest-vitest" }
 ---@param path string
 ---@return boolean
 local function hasVitestDependency(path)
-  local rootPath = util.find_package_json_ancestor(path)
+  local rootPath = lib.files.match_root_pattern("package.json")(path)
 
-  if not (rootPath ~= nil and lib.files.exists(rootPath .. "/package.json")) then
-    print("package.json not found")
+  -- print(rootPath)
+  if not (rootPath) then
+    -- print("package.json not found")
     return false
   end
 
@@ -64,21 +65,24 @@ function adapter.is_test_file(file_path)
   if file_path == nil then
     return false
   end
-
-  if not hasVitestDependency(file_path) then
-    return false
-  end
+  local is_test_file = false
+  local is_test_folder = false
 
   if string.match(file_path, "__tests__") then
-    return true
+    is_test_folder = true
   end
 
   for _, x in ipairs({ "spec", "test" }) do
     for _, ext in ipairs({ "js", "jsx", "coffee", "ts", "tsx" }) do
       if string.match(file_path, "%." .. x .. "%." .. ext .. "$") then
-        return true
+        is_test_file = true
+        goto matched_pattern
       end
     end
+  end
+::matched_pattern::
+  if (is_test_file or is_test_folder) and hasVitestDependency(file_path) then
+    return true
   end
 
   return false
@@ -174,7 +178,7 @@ end
 
 local function escapeTestPattern(s)
   return (
-    s:gsub("%(", "%\\(")
+      s:gsub("%(", "%\\(")
       :gsub("%)", "%\\)")
       :gsub("%]", "%\\]")
       :gsub("%[", "%\\[")
@@ -185,7 +189,7 @@ local function escapeTestPattern(s)
       :gsub("%$", "%\\$")
       :gsub("%^", "%\\^")
       :gsub("%/", "%\\/")
-  )
+      )
 end
 
 local function get_strategy_config(strategy, command)
@@ -269,10 +273,10 @@ end
 
 local function cleanAnsi(s)
   return s:gsub("\x1b%[%d+;%d+;%d+;%d+;%d+m", "")
-    :gsub("\x1b%[%d+;%d+;%d+;%d+m", "")
-    :gsub("\x1b%[%d+;%d+;%d+m", "")
-    :gsub("\x1b%[%d+;%d+m", "")
-    :gsub("\x1b%[%d+m", "")
+      :gsub("\x1b%[%d+;%d+;%d+;%d+m", "")
+      :gsub("\x1b%[%d+;%d+;%d+m", "")
+      :gsub("\x1b%[%d+;%d+m", "")
+      :gsub("\x1b%[%d+m", "")
 end
 
 local function parsed_json_to_results(data, output_file, consoleOut)
