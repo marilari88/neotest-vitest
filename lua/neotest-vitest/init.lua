@@ -16,10 +16,9 @@ local adapter = { name = "neotest-vitest" }
 ---@param path string
 ---@return boolean
 local function hasVitestDependency(path)
-  local rootPath = util.find_package_json_ancestor(path)
+  local rootPath = lib.files.match_root_pattern("package.json")(path)
 
-  if not (rootPath ~= nil and lib.files.exists(rootPath .. "/package.json")) then
-    print("package.json not found")
+  if not rootPath then
     return false
   end
 
@@ -64,24 +63,22 @@ function adapter.is_test_file(file_path)
   if file_path == nil then
     return false
   end
-
-  if not hasVitestDependency(file_path) then
-    return false
-  end
+  local is_test_file = false
 
   if string.match(file_path, "__tests__") then
-    return true
+    is_test_file = true
   end
 
   for _, x in ipairs({ "spec", "test" }) do
     for _, ext in ipairs({ "js", "jsx", "coffee", "ts", "tsx" }) do
       if string.match(file_path, "%." .. x .. "%." .. ext .. "$") then
-        return true
+        is_test_file = true
+        goto matched_pattern
       end
     end
   end
-
-  return false
+  ::matched_pattern::
+  return is_test_file and hasVitestDependency(file_path)
 end
 
 ---@async
