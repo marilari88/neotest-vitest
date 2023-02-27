@@ -18,7 +18,7 @@ local adapter = { name = "neotest-vitest" }
 local function hasVitestDependency(path)
   local rootPath = lib.files.match_root_pattern("package.json")(path)
 
-  if not (rootPath) then
+  if not rootPath then
     return false
   end
 
