@@ -19,7 +19,6 @@ local function hasVitestDependency(path)
   local rootPath = lib.files.match_root_pattern("package.json")(path)
 
   if not (rootPath) then
-    -- print("package.json not found")
     return false
   end
 
@@ -65,10 +64,9 @@ function adapter.is_test_file(file_path)
     return false
   end
   local is_test_file = false
-  local is_test_folder = false
 
   if string.match(file_path, "__tests__") then
-    is_test_folder = true
+    is_test_file = true
   end
 
   for _, x in ipairs({ "spec", "test" }) do
@@ -80,11 +78,7 @@ function adapter.is_test_file(file_path)
     end
   end
   ::matched_pattern::
-  if (is_test_file or is_test_folder) and hasVitestDependency(file_path) then
-    return true
-  end
-
-  return false
+  return is_test_file and hasVitestDependency(file_path)
 end
 
 ---@async
