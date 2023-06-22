@@ -296,7 +296,7 @@ local function parsed_json_to_results(data, output_file, consoleOut)
 
       keyid = keyid .. "::" .. name
 
-      if status == "pending" then
+      if status == "pending" or status == "todo" then
         status = "skipped"
       end
 
