@@ -232,7 +232,7 @@ function adapter.build_spec(args)
   end
 
   if pos.type == "namespace" then
-    testNamePattern = "^ " .. escapeTestPattern(pos.name)
+    testNamePattern = escapeTestPattern(pos.name)
   end
 
   local binary = getVitestCommand(pos.path)
