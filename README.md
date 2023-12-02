@@ -34,7 +34,7 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
 
 ```lua
 use({
-  "rcarriga/neotest",
+  "nvim-neotest/neotest",
   requires = {
     ...,
     "marilari88/neotest-vitest",
