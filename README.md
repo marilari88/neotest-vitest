@@ -22,9 +22,9 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
   config = function()
     require("neotest").setup({
 	  adapters = {
-        ...,
-		require("neotest-vitest"),
-        },
+            ...,
+            require("neotest-vitest"),
+            }
       })
   end,
 }
