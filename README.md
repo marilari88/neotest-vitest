@@ -6,7 +6,6 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
 
 ## Known issues
 
-- ~~Wrong error location on collecting results - (this is related to Vitest reporting issue)~~ (solved by Vitest 0.23.0)
 - test.each is currently not well supported (WIP)
 
 ## How to install it
@@ -15,18 +14,19 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
 
 ```lua
 {
-	"nvim-neotest/neotest",
-	dependencies = {
-		"marilari88/neotest-vitest",
-        ...
-	},
-	config = function()
-		require("neotest").setup({
-			adapters = {
-				require("neotest-vitest"),
-			},
-		})
-	end,
+  "nvim-neotest/neotest",
+  dependencies = {
+    ...,
+    "marilari88/neotest-vitest",
+  },
+  config = function()
+    require("neotest").setup({
+	  adapters = {
+        ...,
+		require("neotest-vitest"),
+        },
+      })
+  end,
 }
 ```
 
@@ -34,16 +34,16 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
 
 ```lua
 use({
-  'rcarriga/neotest',
+  "rcarriga/neotest",
   requires = {
     ...,
-    'marilari88/neotest-vitest',
+    "marilari88/neotest-vitest",
   }
   config = function()
-    require('neotest').setup({
+    require("neotest").setup({
       ...,
       adapters = {
-        require('neotest-vitest')
+        require("neotest-vitest")
         }
     })
   end
