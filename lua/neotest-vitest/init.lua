@@ -148,7 +148,7 @@ local function getVitestCommand(path)
   return "vitest"
 end
 
-local vitestConfigPattern = util.root_pattern("vitest.config.{js,ts}")
+local vitestConfigPattern = util.root_pattern("{vite,vitest}.config.{js,ts}")
 
 ---@param path string
 ---@return string|nil
@@ -159,14 +159,23 @@ local function getVitestConfig(path)
     return nil
   end
 
-  local vitestJs = util.path.join(rootPath, "vitest.config.js")
-  local vitestTs = util.path.join(rootPath, "vitest.config.ts")
+  -- Ordered by config precedence (https://vitest.dev/config/#configuration)
+  local possibleVitestConfigNames = {
+    "vitest.config.ts",
+    "vitest.config.js",
+    "vite.config.ts",
+    "vite.config.js",
+  }
 
-  if util.path.exists(vitestTs) then
-    return vitestTs
+  for _, configName in ipairs(possibleVitestConfigNames) do
+    local configPath = util.path.join(rootPath, configName)
+
+    if util.path.exists(configPath) then
+      return configPath
+    end
   end
 
-  return vitestJs
+  return nil
 end
 
 local function escapeTestPattern(s)
