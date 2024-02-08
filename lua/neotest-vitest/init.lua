@@ -148,7 +148,7 @@ local function getVitestCommand(path)
   return "vitest"
 end
 
-local vitestConfigPattern = util.root_pattern("{vite,vitest}.config.{js,ts}")
+local vitestConfigPattern = util.root_pattern("{vite,vitest}.config.{js,ts,mjs,mts}")
 
 ---@param path string
 ---@return string|nil
@@ -165,6 +165,11 @@ local function getVitestConfig(path)
     "vitest.config.js",
     "vite.config.ts",
     "vite.config.js",
+    -- `.mts,.mjs` are sometimes needed (https://vitejs.dev/guide/migration.html#deprecate-cjs-node-api)
+    "vitest.config.mts",
+    "vitest.config.mjs",
+    "vite.config.mts",
+    "vite.config.mjs",
   }
 
   for _, configName in ipairs(possibleVitestConfigNames) do
