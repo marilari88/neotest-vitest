@@ -15,35 +15,33 @@ local adapter = { name = "neotest-vitest" }
 
 local rootPackageJson = vim.fn.getcwd() .. "/package.json"
 
+---@param packageJsonContent string
 ---@return boolean
-local function rootProjectHasVitestDependency()
-  local path = rootPackageJson
-
-  local success, packageJsonContent = pcall(lib.files.read, path)
-  if not success then
-    print("cannot read package.json")
-    return false
-  end
-
+local function hasVitestDependencyInJson(packageJsonContent)
   local parsedPackageJson = vim.json.decode(packageJsonContent)
 
-  if parsedPackageJson["devDependencies"] then
-    for key, _ in pairs(parsedPackageJson["devDependencies"]) do
-      if key == "vitest" then
-        return true
-      end
-    end
-  end
-
-  if parsedPackageJson["dependencies"] then
-    for key, _ in pairs(parsedPackageJson["dependencies"]) do
-      if key == "vitest" then
-        return true
+  for _, dependencyType in ipairs({ "dependencies", "devDependencies" }) do
+    if parsedPackageJson[dependencyType] then
+      for key, _ in pairs(parsedPackageJson[dependencyType]) do
+        if key == "vitest" then
+          return true
+        end
       end
     end
   end
 
   return false
+end
+
+---@return boolean
+local function hasRootProjectVitestDependency()
+  local success, packageJsonContent = pcall(lib.files.read, rootPackageJson)
+  if not success then
+    print("cannot read package.json")
+    return false
+  end
+
+  return hasVitestDependencyInJson(packageJsonContent)
 end
 
 ---@param path string
@@ -61,25 +59,7 @@ local function hasVitestDependency(path)
     return false
   end
 
-  local parsedPackageJson = vim.json.decode(packageJsonContent)
-
-  if parsedPackageJson["dependencies"] then
-    for key, _ in pairs(parsedPackageJson["dependencies"]) do
-      if key == "vitest" then
-        return true
-      end
-    end
-  end
-
-  if parsedPackageJson["devDependencies"] then
-    for key, _ in pairs(parsedPackageJson["devDependencies"]) do
-      if key == "vitest" then
-        return true
-      end
-    end
-  end
-
-  return rootProjectHasVitestDependency()
+  return hasVitestDependencyInJson(packageJsonContent) or hasRootProjectVitestDependency()
 end
 
 adapter.root = function(path)
