@@ -9,8 +9,9 @@ local util = require("neotest-vitest.util")
 ---@field vitestConfigFile? string|fun(): string
 ---@field env? table<string, string>|fun(): table<string, string>
 ---@field cwd? string|fun(): string
+---@field filter_dir? fun(name: string, relpath: string, root: string): boolean
 
----@type neotest.Adapter
+---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
 
 ---@param path string
@@ -53,7 +54,7 @@ adapter.root = function(path)
   return lib.files.match_root_pattern("package.json")(path)
 end
 
-function adapter.filter_dir(name)
+function adapter.filter_dir(name, _relpath, _root)
   return name ~= "node_modules"
 end
 
@@ -383,6 +384,7 @@ setmetatable(adapter, {
         return opts.vitestCommand
       end
     end
+
     if is_callable(opts.vitestConfigFile) then
       getVitestConfig = opts.vitestConfigFile
     elseif opts.vitestConfigFile then
@@ -390,6 +392,7 @@ setmetatable(adapter, {
         return opts.vitestConfigFile
       end
     end
+
     if is_callable(opts.env) then
       getEnv = opts.env
     elseif opts.env then
@@ -397,6 +400,7 @@ setmetatable(adapter, {
         return vim.tbl_extend("force", opts.env, specEnv)
       end
     end
+
     if is_callable(opts.cwd) then
       getCwd = opts.cwd
     elseif opts.cwd then
@@ -404,6 +408,11 @@ setmetatable(adapter, {
         return opts.cwd
       end
     end
+
+    if is_callable(opts.filter_dir) then
+      adapter.filter_dir = opts.filter_dir
+    end
+
     return adapter
   end,
 })
