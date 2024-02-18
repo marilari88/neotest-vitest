@@ -80,6 +80,28 @@ Make sure you have Treesitter installed with the right language parser installed
 }
 ```
 
+### Stricter file parsing to determine test files
+
+Use `is_test_file` option to add a custom criteria for test file discovery.
+
+```lua
+---Custom criteria for a file path to determine if it is a vitest test file.
+---@async
+---@param file_path string Path of the potential vitest test file
+---@return boolean
+is_test_file = function(file_path)
+    -- Check if the project is "my-peculiar-project"
+    if string.match(file_path, "my-peculiar-project") then
+        -- Check if the file path includes something else
+        if string.match(file_path, "/myapp/") then
+            -- eg. only files in __tests__ are to be considered
+            return string.match(file_path, "__tests__")
+        end
+    end
+    return false
+end,
+```
+
 ### Filter directories
 
 Use `filter_dir` option to limit directories to be searched for tests.
