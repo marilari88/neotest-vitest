@@ -9,30 +9,39 @@ A = function(...)
 end
 
 describe("adapter enabled", function()
-  async.it("enable adapter", function()
+  async.it("vitest simple repo", function()
     assert.Not.Nil(plugin.root("./spec"))
-  end)
-
-  async.it("disable adapter", function()
-    assert.Nil(plugin.root("./spec-jest"))
   end)
 
   async.it("disable adapter no package.json", function()
     assert.Nil(plugin.root("."))
   end)
+
+  async.it("enable adapter for monorepo with vitest at root", function()
+    assert.Not.Nil(plugin.root("./spec-monorepo"))
+  end)
 end)
 
 describe("is_test_file", function()
-  it("matches vitest files", function()
-    assert.True(plugin.is_test_file("./spec/basic.test.ts"))
+  async.it("matches vitest files", function()
+    assert.is.truthy(plugin.is_test_file("./spec/basic.test.ts"))
   end)
 
-  it("does not match plain js files", function()
-    assert.False(plugin.is_test_file("./index.ts"))
+  async.it("does not match plain js files", function()
+    assert.is.falsy(plugin.is_test_file("./index.ts"))
   end)
 
-  it("does not match file name ending with test", function()
-    assert.False(plugin.is_test_file("./setupVitest.ts"))
+  async.it("does not match file name ending with test", function()
+    assert.is.falsy(plugin.is_test_file("./setupVitest.ts"))
+  end)
+
+  async.it("does not match test in repo with jest", function()
+    assert.is.falsy(plugin.is_test_file("./spec-jest/basic.test.ts"))
+  end)
+
+  async.it("matches vitest files in monorepo", function()
+    assert.is.truthy(plugin.is_test_file("./spec-monorepo/packages/example/basic.test.ts"))
+    assert.is.truthy(plugin.is_test_file("./spec-monorepo/apps/todo/todo.test.tsx"))
   end)
 end)
 
