@@ -21,11 +21,11 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
   },
   config = function()
     require("neotest").setup({
-          ...,
-	  adapters = {
-            require("neotest-vitest"),
-            }
-      })
+      ...,
+      adapters = {
+        require("neotest-vitest"),
+      }
+    })
   end,
 }
 ```
@@ -44,7 +44,7 @@ use({
       ...,
       adapters = {
         require("neotest-vitest")
-        }
+      }
     })
   end
 })
@@ -54,6 +54,56 @@ Make sure you have Treesitter installed with the right language parser installed
 
 ```
 :TSInstall javascript
+```
+
+## Configuration
+```lua
+{
+  "nvim-neotest/neotest",
+  dependencies = {
+    ...,
+    "marilari88/neotest-vitest",
+  },
+  config = function()
+    require("neotest").setup({
+      ...,
+      adapters = {
+        require("neotest-vitest") {
+          -- Filter directories when searching for test files. Useful in large projects (see Filter directories notes).
+          filter_dir = function(name, rel_path, root)
+            return name ~= "node_modules"
+          end,
+        },
+      }
+    })
+  end,
+}
+```
+
+### Filter directories
+
+Use `filter_dir` option to limit directories to be searched for tests.
+
+```lua
+---Filter directories when searching for test files
+---@async
+---@param name string Name of directory
+---@param rel_path string Path to directory, relative to root
+---@param root string Root directory of project
+---@return boolean
+filter_dir = function(name, rel_path, root)
+  local full_path = root .. "/" .. rel_path
+
+  if root:match("projects/my-large-monorepo") then
+    if full_path:match("^unit_tests") then
+      return true
+    else
+      return false
+    end
+  else
+    return name ~= "node_modules"
+  end
+end
 ```
 
 ## Usage
