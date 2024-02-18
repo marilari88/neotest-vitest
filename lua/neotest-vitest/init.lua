@@ -14,6 +14,37 @@ local util = require("neotest-vitest.util")
 ---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
 
+local rootPackageJson = vim.fn.getcwd() .. "/package.json"
+
+---@param packageJsonContent string
+---@return boolean
+local function hasVitestDependencyInJson(packageJsonContent)
+  local parsedPackageJson = vim.json.decode(packageJsonContent)
+
+  for _, dependencyType in ipairs({ "dependencies", "devDependencies" }) do
+    if parsedPackageJson[dependencyType] then
+      for key, _ in pairs(parsedPackageJson[dependencyType]) do
+        if key == "vitest" then
+          return true
+        end
+      end
+    end
+  end
+
+  return false
+end
+
+---@return boolean
+local function hasRootProjectVitestDependency()
+  local success, packageJsonContent = pcall(lib.files.read, rootPackageJson)
+  if not success then
+    print("cannot read package.json")
+    return false
+  end
+
+  return hasVitestDependencyInJson(packageJsonContent)
+end
+
 ---@param path string
 ---@return boolean
 local function hasVitestDependency(path)
@@ -29,25 +60,7 @@ local function hasVitestDependency(path)
     return false
   end
 
-  local parsedPackageJson = vim.json.decode(packageJsonContent)
-
-  if parsedPackageJson["dependencies"] then
-    for key, _ in pairs(parsedPackageJson["dependencies"]) do
-      if key == "vitest" then
-        return true
-      end
-    end
-  end
-
-  if parsedPackageJson["devDependencies"] then
-    for key, _ in pairs(parsedPackageJson["devDependencies"]) do
-      if key == "vitest" then
-        return true
-      end
-    end
-  end
-
-  return false
+  return hasVitestDependencyInJson(packageJsonContent) or hasRootProjectVitestDependency()
 end
 
 adapter.root = function(path)

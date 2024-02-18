@@ -23,7 +23,17 @@ describe("adapter enabled", function()
 end)
 
 describe("is_test_file", function()
+  local original_dir
+  before_each(function()
+    original_dir = vim.api.nvim_eval("getcwd()")
+  end)
+
+  after_each(function()
+    vim.api.nvim_set_current_dir(original_dir)
+  end)
+
   async.it("matches vitest files", function()
+    vim.api.nvim_set_current_dir("./spec")
     assert.is.truthy(plugin.is_test_file("./spec/basic.test.ts"))
   end)
 
@@ -36,10 +46,12 @@ describe("is_test_file", function()
   end)
 
   async.it("does not match test in repo with jest", function()
+    vim.api.nvim_set_current_dir("./spec-jest")
     assert.is.falsy(plugin.is_test_file("./spec-jest/basic.test.ts"))
   end)
 
   async.it("matches vitest files in monorepo", function()
+    vim.api.nvim_set_current_dir("./spec-monorepo")
     assert.is.truthy(plugin.is_test_file("./spec-monorepo/packages/example/basic.test.ts"))
     assert.is.truthy(plugin.is_test_file("./spec-monorepo/apps/todo/todo.test.tsx"))
   end)
