@@ -10,6 +10,7 @@ local util = require("neotest-vitest.util")
 ---@field env? table<string, string>|fun(): table<string, string>
 ---@field cwd? string|fun(): string
 ---@field filter_dir? fun(name: string, relpath: string, root: string): boolean
+---@field is_test_file? fun(file_path: string): boolean
 
 ---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
@@ -424,6 +425,13 @@ setmetatable(adapter, {
 
     if is_callable(opts.filter_dir) then
       adapter.filter_dir = opts.filter_dir
+    end
+
+    if is_callable(opts.is_test_file) then
+      local is_test_file = adapter.is_test_file
+      adapter.is_test_file = function(file_path)
+        return is_test_file(file_path) and opts.is_test_file(file_path)
+      end
     end
 
     return adapter
