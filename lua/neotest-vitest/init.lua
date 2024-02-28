@@ -214,7 +214,7 @@ local function escapeTestPattern(s)
   )
 end
 
-local function get_strategy_config(strategy, command)
+local function get_strategy_config(strategy, command, cwd)
   local config = {
     dap = function()
       return {
@@ -225,6 +225,7 @@ local function get_strategy_config(strategy, command)
         runtimeExecutable = command[1],
         console = "integratedTerminal",
         internalConsoleOptions = "neverOpen",
+        cwd = cwd or "${workspaceFolder}",
       }
     end,
   }
@@ -241,56 +242,6 @@ end
 ---@return string|nil
 local function getCwd(path)
   return nil
-end
-
----@param args neotest.RunArgs
----@return neotest.RunSpec | nil
-function adapter.build_spec(args)
-  local results_path = async.fn.tempname() .. ".json"
-  local tree = args.tree
-
-  if not tree then
-    return
-  end
-
-  local pos = args.tree:data()
-  local testNamePattern = ".*"
-
-  if pos.type == "test" then
-    testNamePattern = escapeTestPattern(pos.name) .. "$"
-  end
-
-  if pos.type == "namespace" then
-    testNamePattern = "^ " .. escapeTestPattern(pos.name)
-  end
-
-  local binary = getVitestCommand(pos.path)
-  local config = getVitestConfig(pos.path) or "vitest.config.js"
-  local command = vim.split(binary, "%s+")
-  if util.path.exists(config) then
-    -- only use config if available
-    table.insert(command, "--config=" .. config)
-  end
-
-  vim.list_extend(command, {
-    "--run",
-    "--reporter=verbose",
-    "--reporter=json",
-    "--outputFile=" .. results_path,
-    "--testNamePattern=" .. testNamePattern .. "",
-    pos.path,
-  })
-
-  return {
-    command = command,
-    cwd = getCwd(pos.path),
-    context = {
-      results_path = results_path,
-      file = pos.path,
-    },
-    strategy = get_strategy_config(args.strategy, command),
-    env = getEnv(args[2] and args[2].env or {}),
-  }
 end
 
 local function cleanAnsi(s)
@@ -359,10 +310,87 @@ local function parsed_json_to_results(data, output_file, consoleOut)
   return tests
 end
 
+---@param args neotest.RunArgs
+---@return neotest.RunSpec | nil
+function adapter.build_spec(args)
+  local results_path = async.fn.tempname() .. ".json"
+  local tree = args.tree
+
+  if not tree then
+    return
+  end
+
+  local pos = args.tree:data()
+  local testNamePattern = ".*"
+
+  if pos.type == "test" then
+    testNamePattern = escapeTestPattern(pos.name) .. "$"
+  end
+
+  if pos.type == "namespace" then
+    testNamePattern = "^ " .. escapeTestPattern(pos.name)
+  end
+
+  local binary = args.vitestCommand or getVitestCommand(pos.path)
+  local config = getVitestConfig(pos.path) or "vitest.config.js"
+  local command = vim.split(binary, "%s+")
+
+  if util.path.exists(config) then
+    -- only use config if available
+    table.insert(command, "--config=" .. config)
+  end
+
+  vim.list_extend(command, {
+    "--watch=false",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile=" .. results_path,
+    "--testNamePattern=" .. testNamePattern,
+    vim.fs.normalize(pos.path),
+  })
+
+  local cwd = getCwd(pos.path)
+
+  -- creating empty file for streaming results
+  lib.files.write(results_path, "")
+  local stream_data, stop_stream = util.stream(results_path)
+
+  return {
+    command = command,
+    cwd = cwd,
+    context = {
+      results_path = results_path,
+      file = pos.path,
+      stop_stream = stop_stream,
+    },
+    stream = function()
+      return function()
+        local new_results = stream_data()
+
+        if not new_results or new_results == "" then
+          return {}
+        end
+
+        local ok, parsed = pcall(vim.json.decode, new_results, { luanil = { object = true } })
+
+        if not ok or not parsed.testResults then
+          return {}
+        end
+
+        return parsed_json_to_results(parsed, results_path, nil)
+      end
+    end,
+    strategy = get_strategy_config(args.strategy, command, cwd),
+    env = getEnv(args[2] and args[2].env or {}),
+  }
+end
+
 ---@async
 ---@param spec neotest.RunSpec
 ---@return neotest.Result[]
 function adapter.results(spec, b, tree)
+  spec.context.stop_stream()
+
   local output_file = spec.context.results_path
 
   local success, data = pcall(lib.files.read, output_file)
