@@ -135,7 +135,7 @@ end
 vim.api.nvim_set_keymap(
     "n", 
     "<leader>twr", 
-    "<cmd>lua require('neotest').run.run({ vitestCommand = 'vitest --watch ' })<cr>", 
+    "<cmd>lua require('neotest').run.run({ vitestCommand = 'vitest --watch' })<cr>", 
     {desc = "Run Watch"}
 )
 
