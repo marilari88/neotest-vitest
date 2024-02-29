@@ -128,6 +128,26 @@ filter_dir = function(name, rel_path, root)
 end
 ```
 
+### Watch mode mappings
+
+```lua
+
+vim.api.nvim_set_keymap(
+    "n", 
+    "<leader>twr", 
+    "<cmd>lua require('neotest').run.run({ vitestCommand = 'vitest --watch' })<cr>", 
+    {desc = "Run Watch"}
+)
+
+vim.api.nvim_set_keymap(
+    "n",
+    "<leader>twf",
+    "<cmd>lua require('neotest').run.run({ vim.fn.expand("%"), vitestCommand = 'vitest --watch' })<cr>",
+    {desc = "Run Watch File"}
+)
+
+```
+
 ## Usage
 
 ![usage preview](https://user-images.githubusercontent.com/32909388/185812063-d05d9cc7-b9aa-43ed-915b-cf156e3f0c52.gif)
