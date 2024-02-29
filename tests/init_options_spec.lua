@@ -31,7 +31,7 @@ describe("build_spec with override", function()
     local command = spec.command
     assert.is.truthy(command)
     assert.contains(command, binary_override())
-    assert.contains(command, "--run")
+    assert.contains(command, "--watch=false")
     assert.contains(command, "--reporter=verbose")
     --[[ assert.contains(command, "--config=" .. config_override()) ]]
     assert.contains(command, "--testNamePattern=.*")
