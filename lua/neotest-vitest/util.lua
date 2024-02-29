@@ -186,6 +186,10 @@ function M.find_package_json_ancestor(startpath)
   end)
 end
 
+--- Streams a file asynchronously.
+-- @param file_path string: The path to the file to stream.
+-- @return function: Iterator function that returns the next chunk of data.
+-- @return function: A function that can be called to stop the stream.
 function M.stream(file_path)
   local queue = async.control.queue()
   local read_semaphore = async.control.semaphore(1)
