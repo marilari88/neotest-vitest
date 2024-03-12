@@ -64,7 +64,7 @@ local function hasVitestDependencyInWorkspacePackage()
     local workspacePackageJson = cwd .. "/" .. workspace .. "/package.json"
     local success, parsedWorkspacePackageJson = pcall(lib.files.read, workspacePackageJson)
     if not success then
-      print("cannot read" .. workspace .. "package.json")
+      print("cannot read " .. workspace .. "/package.json")
       return false
     end
     if hasVitestDependencyInJson(parsedWorkspacePackageJson) then
