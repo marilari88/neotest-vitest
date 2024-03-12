@@ -20,6 +20,10 @@ describe("adapter enabled", function()
   async.it("enable adapter for monorepo with vitest at root", function()
     assert.Not.Nil(plugin.root("./spec-monorepo"))
   end)
+
+  async.it("enable adapter for monorepo with vitest in workspace package", function()
+    assert.Not.Nil(plugin.root("./spec-monorepo-no-root-dep"))
+  end)
 end)
 
 describe("is_test_file", function()
