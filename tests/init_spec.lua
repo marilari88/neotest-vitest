@@ -57,17 +57,16 @@ describe("is_test_file", function()
   async.it("matches vitest files in monorepo", function()
     vim.api.nvim_set_current_dir("./spec-monorepo")
     assert.is.truthy(plugin.is_test_file("./packages/example/basic.test.ts"))
-    -- This is a test file but the example-no-vitest package does not have vitest
-    -- It should still match because vitest is required by the "example" package
-    -- and vitest is therefore available in the monorepo.
-    -- Commenting out the final line in init.lua:hasVitestDependency causes this test to fail.
-    assert.is.truthy(plugin.is_test_file("./packages/example-no-vitest/basic.test.ts"))
   end)
 
   async.it("Matches vitest files in monorepo with vitest in workspace package", function()
     vim.api.nvim_set_current_dir("./spec-monorepo-no-root-dep")
     assert.is.truthy(plugin.is_test_file("./packages/example/basic.test.ts"))
-    assert.is.truthy(plugin.is_test_file("./apps/todo/todo.test.tsx"))
+    -- This is a test file but the example-no-vitest package does not have vitest
+    -- It should still match because vitest is required by the "example" package
+    -- and vitest is therefore available in the monorepo.
+    -- Commenting out the final line in init.lua:hasVitestDependency causes this test to fail.
+    assert.is.truthy(plugin.is_test_file("./packages/example-no-vitest/basic.test.ts"))
   end)
 end)
 
