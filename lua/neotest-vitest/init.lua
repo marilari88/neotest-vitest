@@ -34,20 +34,19 @@ local function hasVitestDependencyInJson(packageJsonContent)
 end
 
 ---@param localPackageDirectory string
----@return string|nil
+---@return string
 local function inferRootWorkspaceDirectory(localPackageDirectory)
   --Find root package.json from local package.json
-  --We can assume that we are in a workspace because we have fallen through the initial package.json check
   local parentDirectory = lib.files.parent(localPackageDirectory)
   --Afaik there is no way to have more than two levels of workspaces so any package.json above the local one is the root
-  return lib.files.match_root_pattern("package.json")(parentDirectory)
+  --Fall back to local package directory if we cannot find a root package.json
+  return lib.files.match_root_pattern("package.json")(parentDirectory) or localPackageDirectory
 end
 
 ---@param localPackageDirectory string
 ---@return boolean
 local function hasRootProjectVitestDependency(localPackageDirectory)
   local rootPackageJsonDirectory = inferRootWorkspaceDirectory(localPackageDirectory)
-    or localPackageDirectory
   local rootPackageJsonPath = rootPackageJsonDirectory .. "/package.json"
   local success, packageJsonContent = pcall(lib.files.read, rootPackageJsonPath)
   if not success then
@@ -62,7 +61,6 @@ end
 --@return boolean
 local function hasSomeWorkspacePackageVitestDependency(localPackageDirectory)
   local rootWorkspaceDirectory = inferRootWorkspaceDirectory(localPackageDirectory)
-    or localPackageDirectory
 
   local success, packageJsonContent =
     pcall(lib.files.read, rootWorkspaceDirectory .. "/package.json")
