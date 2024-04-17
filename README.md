@@ -10,7 +10,27 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
 
 ## How to install it
 
-### Lazy
+### Lazy.nvim
+
+```lua
+{
+  "nvim-neotest/neotest",
+  dependencies = {
+    ...,
+    "marilari88/neotest-vitest",
+  },
+  config = function()
+    require("neotest").setup({
+      ...,
+      adapters = {
+        require("neotest-vitest"),
+      }
+    })
+  end,
+}
+```
+
+### LazyVim
 
 ```lua
 {
