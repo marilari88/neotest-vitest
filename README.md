@@ -10,7 +10,7 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
 
 ## How to install it
 
-### Lazy
+### Lazy.nvim
 
 ```lua
 {
@@ -27,6 +27,23 @@ Credits to [neotest-jest](https://github.com/haydenmeade/neotest-jest)
       }
     })
   end,
+}
+```
+
+### LazyVim
+
+```lua
+{
+  "nvim-neotest/neotest",
+  dependencies = {
+    "marilari88/neotest-vitest",
+  },
+  opts = {
+    adapters = {
+      ["neotest-vitest"] = {},
+    },
+  },
+
 }
 ```
 
@@ -57,6 +74,7 @@ Make sure you have Treesitter installed with the right language parser installed
 ```
 
 ## Configuration
+
 ```lua
 {
   "nvim-neotest/neotest",
@@ -133,9 +151,9 @@ end
 ```lua
 
 vim.api.nvim_set_keymap(
-    "n", 
-    "<leader>twr", 
-    "<cmd>lua require('neotest').run.run({ vitestCommand = 'vitest --watch' })<cr>", 
+    "n",
+    "<leader>twr",
+    "<cmd>lua require('neotest').run.run({ vitestCommand = 'vitest --watch' })<cr>",
     {desc = "Run Watch"}
 )
 
