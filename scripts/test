@@ -6,9 +6,11 @@ if [ ! -d .testdeps ]; then
 	mkdir -p .testdeps
 
 	git clone --depth 1 https://github.com/nvim-lua/plenary.nvim.git .testdeps/plenary.nvim
+	git clone --depth 1 https://github.com/nvim-neotest/nvim-nio .testdeps/nvim-nio
 	git clone --depth 1 https://github.com/nvim-treesitter/nvim-treesitter.git .testdeps/nvim-treesitter
 	git clone --depth 1 https://github.com/nvim-neotest/neotest.git .testdeps/neotest
 fi
+
 
 if [[ -n $1 ]]; then
 	nvim --headless --noplugin -u tests/init.vim -c "PlenaryBustedFile $1" | tee "${tempfile}"
@@ -23,6 +25,7 @@ rm "${tempfile}"
 
 if [[ -n $errors ]]; then
 	echo "Tests failed"
+  echo "$errors"
 	exit 1
 fi
 
