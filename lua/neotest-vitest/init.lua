@@ -96,6 +96,35 @@ function adapter.is_test_file(file_path)
   return is_test_file and hasVitestDependency(file_path)
 end
 
+local function get_match_type(captured_nodes)
+  if captured_nodes["test.name"] then
+    return "test"
+  end
+  if captured_nodes["namespace.name"] then
+    return "namespace"
+  end
+end
+
+-- Enrich `it.each` tests with metadata about TS node position
+function adapter.build_position(file_path, source, captured_nodes)
+  local match_type = get_match_type(captured_nodes)
+  if not match_type then
+    return
+  end
+
+  ---@type string
+  local name = vim.treesitter.get_node_text(captured_nodes[match_type .. ".name"], source)
+  local definition = captured_nodes[match_type .. ".definition"]
+
+  return {
+    type = match_type,
+    path = file_path,
+    name = name,
+    range = { definition:range() },
+    is_parameterized = captured_nodes["each_property"] and true or false,
+  }
+end
+
 ---@async
 ---@return neotest.Tree | nil
 function adapter.discover_positions(path)
@@ -141,13 +170,18 @@ function adapter.discover_positions(path)
       function: (call_expression
         function: (member_expression
           object: (identifier) @func_name (#any-of? @func_name "it" "test")
+          property: (property_identifier) @each_property (#eq? @each_property "each")
         )
       )
       arguments: (arguments (string (string_fragment) @test.name) (arrow_function))
     )) @test.definition
   ]]
 
-  return lib.treesitter.parse_positions(path, query, { nested_tests = true })
+  return lib.treesitter.parse_positions(
+    path,
+    query,
+    { nested_tests = false, build_position = 'require("neotest-vitest").build_position' }
+  )
 end
 
 ---@param path string

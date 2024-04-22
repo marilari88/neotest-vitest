@@ -65,28 +65,34 @@ describe("discover_positions", function()
       {
         name = "basic.test.ts",
         type = "file",
+        is_parametrized = false,
       },
       {
         {
           name = "describe text",
           type = "namespace",
+          is_parametrized = false,
         },
         {
           {
             name = "1",
             type = "test",
+            is_parametrized = false,
           },
           {
             name = "2",
             type = "test",
+            is_parametrized = false,
           },
           {
             name = "3",
             type = "test",
+            is_parametrized = false,
           },
           {
             name = "4",
             type = "test",
+            is_parametrized = false,
           },
         },
       },
@@ -113,29 +119,35 @@ describe("discover_positions", function()
     local expected_output = {
       {
         name = "array.test.ts",
+        is_parametrized = false,
         type = "file",
       },
       {
         {
           name = "describe text",
+          is_parametrized = false,
           type = "namespace",
         },
         {
           {
             name = "Array1",
             type = "test",
+            is_parametrized = true
           },
           {
             name = "Array2",
             type = "test",
+            is_parametrized = true
           },
           {
             name = "Array3",
             type = "test",
+            is_parametrized = true
           },
           {
             name = "Array4",
             type = "test",
+            is_parametrized = true
           },
         },
       },
