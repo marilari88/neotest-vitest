@@ -15,9 +15,7 @@ local adapter = { name = "neotest-vitest" }
 
 ---@param path string
 ---@return boolean
-local function hasVitestDependency(path)
-  local rootPath = lib.files.match_root_pattern("package.json")(path)
-
+local function hasVitestDependency(rootPath)
   if not rootPath then
     return false
   end
@@ -50,7 +48,11 @@ local function hasVitestDependency(path)
 end
 
 adapter.root = function(path)
-  return lib.files.match_root_pattern("package.json")(path)
+  local rootPath = lib.files.match_root_pattern("package.json")(path)
+  if hasVitestDependency(rootPath) then
+    return rootPath
+  end
+  return nil
 end
 
 function adapter.filter_dir(name)
@@ -63,22 +65,20 @@ function adapter.is_test_file(file_path)
   if file_path == nil then
     return false
   end
-  local is_test_file = false
 
   if string.match(file_path, "__tests__") then
-    is_test_file = true
+    return true
   end
 
   for _, x in ipairs({ "spec", "test" }) do
     for _, ext in ipairs({ "js", "jsx", "coffee", "ts", "tsx" }) do
       if string.match(file_path, "%." .. x .. "%." .. ext .. "$") then
-        is_test_file = true
-        goto matched_pattern
+        return true
       end
     end
   end
-  ::matched_pattern::
-  return is_test_file and hasVitestDependency(file_path)
+
+  return false
 end
 
 ---@async
@@ -152,6 +152,12 @@ local vitestConfigPattern = util.root_pattern("vitest.config.{js,ts}")
 
 ---@param path string
 ---@return string|nil
+local function getCwd(path)
+  return vitestConfigPattern(path) or util.find_node_modules_ancestor(path)
+end
+
+---@param path string
+---@return string|nil
 local function getVitestConfig(path)
   local rootPath = vitestConfigPattern(path)
 
@@ -206,12 +212,6 @@ end
 
 local function getEnv(specEnv)
   return specEnv
-end
-
----@param path string
----@return string|nil
-local function getCwd(path)
-  return vitestConfigPattern(path) or util.find_node_modules_ancestor(path)
 end
 
 ---@param args neotest.RunArgs
