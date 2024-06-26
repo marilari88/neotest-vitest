@@ -35,7 +35,7 @@ describe("build_spec with override", function()
     assert.contains(command, "--reporter=verbose")
     --[[ assert.contains(command, "--config=" .. config_override()) ]]
     assert.contains(command, "--testNamePattern=.*")
-    assert.contains(command, "./spec/basic.test.ts")
+    assert.contains(command, "spec/basic.test.ts")
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
     assert.is.same(

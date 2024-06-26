@@ -1,5 +1,6 @@
 set rtp+=.
 set rtp+=.testdeps/plenary.nvim
+set rtp+=.testdeps/nvim-nio
 set rtp+=.testdeps/nvim-treesitter
 set rtp+=.testdeps/neotest
 
