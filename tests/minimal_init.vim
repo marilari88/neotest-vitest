@@ -2,6 +2,7 @@ set rtp+=.
 set rtp+=.testdeps/plenary.nvim
 set rtp+=.testdeps/nvim-treesitter
 set rtp+=.testdeps/neotest
+set rtp+=.testdeps/nvim-nio
 
 lua <<EOF
 require'nvim-treesitter.configs'.setup {
