@@ -1,19 +1,20 @@
-import { describe ,it ,test } from 'vitest'
+import { describe, it, test, expect } from 'vitest'
 
-describe("describe text", () => {
-  it("1", () => {
-    console.log("do test");
-  });
+describe("describe arrow function", () => {
+    test("foo", () => {
+        expect(true).to.equal(true);
+    });
 
-  it("2", async () => {
-    console.log("do test");
-  });
+    it("bar(error)", () => {
+        expect(true).to.equal(false);
+    });
+});
 
-  test("3", () => {
-    console.log("do test");
-  });
-
-  test("4", async () => {
-    console.log("do test");
-  });
+describe("describe vanilla function", function() {
+    test("foo", () => {
+        console.log("do test");
+    });
+    it("bar", () => {
+        console.log("do test");
+    });
 });
