@@ -321,7 +321,7 @@ function adapter.build_spec(args)
   end
 
   local pos = args.tree:data()
-  local testNamePattern = ".*"
+  local testNamePattern = "'.*'"
 
   if pos.type == "test" then
     testNamePattern = escapeTestPattern(pos.name) .. "$"
