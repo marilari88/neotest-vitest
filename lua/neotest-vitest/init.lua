@@ -146,7 +146,7 @@ function adapter.discover_positions(path)
       arguments: (arguments (string (string_fragment) @test.name) (arrow_function))
     )) @test.definition
   ]]
-  query = query .. string.gsub(query, "arrow_function", "function_expression")
+
   return lib.treesitter.parse_positions(path, query, { nested_tests = true })
 end
 
@@ -200,19 +200,17 @@ end
 
 local function escapeTestPattern(s)
   return (
-    s:gsub("%(", "\\(")
-      :gsub("%)", "\\)")
-      :gsub("%]", "\\]")
-      :gsub("%[", "\\[")
-      :gsub("%.", "\\.")
-      :gsub("%*", "\\*")
-      :gsub("%+", "\\+")
-      :gsub("%-", "\\-")
-      :gsub("%?", "\\?")
-      :gsub(" ", "\\s")
-      :gsub("%$", "\\$")
-      :gsub("%^", "\\^")
-      :gsub("%/", "\\/")
+    s:gsub("%(", "%\\(")
+      :gsub("%)", "%\\)")
+      :gsub("%]", "%\\]")
+      :gsub("%[", "%\\[")
+      :gsub("%*", "%\\*")
+      :gsub("%+", "%\\+")
+      :gsub("%-", "%\\-")
+      :gsub("%?", "%\\?")
+      :gsub("%$", "%\\$")
+      :gsub("%^", "%\\^")
+      :gsub("%/", "%\\/")
   )
 end
 
@@ -246,6 +244,74 @@ local function getCwd(path)
   return nil
 end
 
+local function cleanAnsi(s)
+  return s:gsub("\x1b%[%d+;%d+;%d+;%d+;%d+m", "")
+    :gsub("\x1b%[%d+;%d+;%d+;%d+m", "")
+    :gsub("\x1b%[%d+;%d+;%d+m", "")
+    :gsub("\x1b%[%d+;%d+m", "")
+    :gsub("\x1b%[%d+m", "")
+end
+
+local function parsed_json_to_results(data, output_file, consoleOut)
+  local tests = {}
+  for _, testResult in pairs(data.testResults) do
+    local testFn = testResult.name
+
+    if testResult.assertionResults == nil then
+      return tests
+    end
+    for _, assertionResult in pairs(testResult.assertionResults) do
+      local status, name = assertionResult.status, assertionResult.title
+
+      if name == nil then
+        logger.error("Failed to find parsed test result ", assertionResult)
+        return {}
+      end
+
+      local keyid = testFn
+
+      for _, value in ipairs(assertionResult.ancestorTitles) do
+        if value ~= "" then
+          keyid = keyid .. "::" .. value
+        end
+      end
+
+      keyid = keyid .. "::" .. name
+
+      if status == "pending" or status == "todo" then
+        status = "skipped"
+      end
+
+      tests[keyid] = {
+        status = status,
+        short = name .. ": " .. status,
+        output = consoleOut,
+        location = assertionResult.location,
+      }
+
+      if not vim.tbl_isempty(assertionResult.failureMessages) then
+        local errors = {}
+
+        for i, failMessage in ipairs(assertionResult.failureMessages) do
+          local msg = cleanAnsi(failMessage)
+
+          errors[i] = {
+            line = (assertionResult.location and assertionResult.location.line - 1 or nil),
+            column = (assertionResult.location and assertionResult.location.column or nil),
+            message = msg,
+          }
+
+          tests[keyid].short = tests[keyid].short .. "\n" .. msg
+        end
+
+        tests[keyid].errors = errors
+      end
+    end
+  end
+
+  return tests
+end
+
 ---@param args neotest.RunArgs
 ---@return neotest.RunSpec | nil
 function adapter.build_spec(args)
@@ -255,24 +321,17 @@ function adapter.build_spec(args)
   if not tree then
     return
   end
-  local names = {}
-  while tree and tree:data().type ~= "file" do
-    table.insert(names, 1, tree:data().name)
-    tree = tree:parent() --[[@as neotest.Tree]]
-  end
-  local testNamePattern = table.concat(names, " ")
-
-  if #testNamePattern == 0 then
-    testNamePattern = ".*"
-  else
-    testNamePattern = "^\\s?" .. escapeTestPattern(testNamePattern)
-  end
 
   local pos = args.tree:data()
+  local testNamePattern = ".*"
+
   if pos.type == "test" then
-    testNamePattern = testNamePattern .. "$"
+    testNamePattern = escapeTestPattern(pos.name) .. "$"
   end
 
+  if pos.type == "namespace" then
+    testNamePattern = "^ " .. escapeTestPattern(pos.name)
+  end
   local binary = args.vitestCommand or getVitestCommand(pos.path)
   local config = getVitestConfig(pos.path) or "vitest.config.js"
   local command = vim.split(binary, "%s+")
@@ -312,14 +371,12 @@ function adapter.build_spec(args)
         if not new_results or new_results == "" then
           return {}
         end
-
         local ok, parsed = pcall(vim.json.decode, new_results, { luanil = { object = true } })
 
         if not ok or not parsed.testResults then
           return {}
         end
-
-        return util.parsed_json_to_results(parsed, results_path, nil)
+        return parsed_json_to_results(parsed, results_path, nil)
       end
     end,
     strategy = get_strategy_config(args.strategy, command, cwd),
@@ -349,7 +406,7 @@ function adapter.results(spec, b, tree)
     return {}
   end
 
-  local results = util.parsed_json_to_results(parsed, output_file, b.output)
+  local results = parsed_json_to_results(parsed, output_file, b.output)
 
   return results
 end
