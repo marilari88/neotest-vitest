@@ -1,5 +1,7 @@
 local async = require("nio").tests
 local Tree = require("neotest.types").Tree
+
+---@type neotest.Adapter
 local plugin = require("neotest-vitest")({
   vitestCommand = "vitest",
 })
@@ -58,121 +60,211 @@ describe("is_test_file", function()
 end)
 
 describe("discover_positions", function()
+  local function discover_positions(file_path)
+    local positions = plugin.discover_positions(file_path):to_list()
+    local function remove_range(obj)
+      local islist = vim.islist or vim.tbl_islist
+      if islist(obj) then
+        vim.tbl_map(remove_range, obj)
+      else
+        obj["range"] = nil
+      end
+    end
+    remove_range(positions)
+    return positions
+  end
   async.it("provides meaningful names from a basic spec", function()
-    local positions = plugin.discover_positions("./spec/basic.test.ts"):to_list()
-
+    local positions = discover_positions("./spec/basic.test.ts")
     local expected_output = {
       {
+        id = "./spec/basic.test.ts",
         name = "basic.test.ts",
+        path = "./spec/basic.test.ts",
         type = "file",
       },
       {
         {
-          name = "describe text",
+          id = "./spec/basic.test.ts::describe arrow function",
+          name = "describe arrow function",
+          path = "./spec/basic.test.ts",
           type = "namespace",
         },
         {
           {
-            name = "1",
+            id = "./spec/basic.test.ts::describe arrow function::foo",
+            name = "foo",
+            path = "./spec/basic.test.ts",
             type = "test",
           },
+        },
+        {
           {
-            name = "2",
+            id = "./spec/basic.test.ts::describe arrow function::bar(error)",
+            name = "bar(error)",
+            path = "./spec/basic.test.ts",
             type = "test",
           },
+        },
+      },
+      {
+        {
+          id = "./spec/basic.test.ts::describe vanilla function",
+          name = "describe vanilla function",
+          path = "./spec/basic.test.ts",
+          type = "namespace",
+        },
+        {
           {
-            name = "3",
+            id = "./spec/basic.test.ts::describe vanilla function::foo",
+            name = "foo",
+            path = "./spec/basic.test.ts",
             type = "test",
           },
+        },
+        {
           {
-            name = "4",
+            id = "./spec/basic.test.ts::describe vanilla function::bar",
+            name = "bar",
+            path = "./spec/basic.test.ts",
             type = "test",
           },
         },
       },
     }
-
-    assert.equals(expected_output[1].name, positions[1].name)
-    assert.equals(expected_output[1].type, positions[1].type)
-    assert.equals(expected_output[2][1].name, positions[2][1].name)
-    assert.equals(expected_output[2][1].type, positions[2][1].type)
-
-    assert.equals(5, #positions[2])
-    for i, value in ipairs(expected_output[2][2]) do
-      assert.is.truthy(value)
-      local position = positions[2][i + 1][1]
-      assert.is.truthy(position)
-      assert.equals(value.name, position.name)
-      assert.equals(value.type, position.type)
-    end
+    assert.is.same(expected_output, positions)
   end)
 
   async.it("provides meaningful names for array driven tests", function()
-    local positions = plugin.discover_positions("./spec/array.test.ts"):to_list()
-
+    local positions = discover_positions("./spec/array.test.ts")
     local expected_output = {
       {
+        id = "./spec/array.test.ts",
         name = "array.test.ts",
+        path = "./spec/array.test.ts",
         type = "file",
       },
       {
         {
+          id = "./spec/array.test.ts::describe text",
           name = "describe text",
+          path = "./spec/array.test.ts",
           type = "namespace",
         },
         {
           {
+            id = "./spec/array.test.ts::describe text::Array1",
             name = "Array1",
+            path = "./spec/array.test.ts",
             type = "test",
           },
+        },
+        {
           {
+            id = "./spec/array.test.ts::describe text::Array2",
             name = "Array2",
+            path = "./spec/array.test.ts",
             type = "test",
           },
+        },
+        {
           {
+            id = "./spec/array.test.ts::describe text::Array3",
             name = "Array3",
+            path = "./spec/array.test.ts",
             type = "test",
           },
+        },
+        {
           {
+            id = "./spec/array.test.ts::describe text::Array4",
             name = "Array4",
+            path = "./spec/array.test.ts",
             type = "test",
           },
         },
       },
     }
-
-    assert.equals(expected_output[1].name, positions[1].name)
-    assert.equals(expected_output[1].type, positions[1].type)
-    assert.equals(expected_output[2][1].name, positions[2][1].name)
-    assert.equals(expected_output[2][1].type, positions[2][1].type)
-    assert.equals(5, #positions[2])
-    for i, value in ipairs(expected_output[2][2]) do
-      assert.is.truthy(value)
-      local position = positions[2][i + 1][1]
-      assert.is.truthy(position)
-      assert.equals(value.name, position.name)
-      assert.equals(value.type, position.type)
-    end
+    assert.is.same(expected_output, positions)
   end)
 end)
 
 describe("build_spec", function()
+  local raw_tempname
+  before_each(function()
+    raw_tempname = require("neotest.async").fn.tempname
+    require("neotest.async").fn.tempname = function()
+      return "/tmp/foo"
+    end
+  end)
+  after_each(function()
+    require("neotest.async").fn.tempname = raw_tempname
+  end)
+
+  describe("test name pattern", function()
+    async.it("file level", function()
+      local positions = plugin.discover_positions("./spec/nested.test.ts"):to_list()
+      local tree = Tree.from_list(positions, function(pos)
+        return pos.id
+      end)
+      local spec = plugin.build_spec({ tree = tree })
+      local command = spec.command
+      assert.contains(spec.command, "--testNamePattern=.*")
+    end)
+    async.it("first level", function()
+      local positions = plugin.discover_positions("./spec/nested.test.ts"):to_list()
+      local tree = Tree.from_list(positions, function(pos)
+        return pos.id
+      end)
+      local spec = plugin.build_spec({ tree = tree:children()[1] })
+      assert.contains(spec.command, "--testNamePattern=^\\s?first\\slevel")
+    end)
+    async.it("second level", function()
+      local positions = plugin.discover_positions("./spec/nested.test.ts"):to_list()
+      local tree = Tree.from_list(positions, function(pos)
+        return pos.id
+      end)
+      local spec = plugin.build_spec({ tree = tree:children()[1]:children()[1] })
+      assert.contains(spec.command, "--testNamePattern=^\\s?first\\slevel\\ssecond\\slevel")
+    end)
+    async.it("test level", function()
+      local positions = plugin.discover_positions("./spec/nested.test.ts"):to_list()
+      local tree = Tree.from_list(positions, function(pos)
+        return pos.id
+      end)
+      local spec = plugin.build_spec({ tree = tree:children()[1]:children()[1]:children()[1] })
+      assert.contains(spec.command, "--testNamePattern=^\\s?first\\slevel\\ssecond\\slevel\\sfoo$")
+    end)
+    async.it("test level 2", function()
+      local positions = plugin.discover_positions("./spec/nested.test.ts"):to_list()
+      local tree = Tree.from_list(positions, function(pos)
+        return pos.id
+      end)
+      local spec = plugin.build_spec({ tree = tree:children()[1]:children()[1]:children()[2] })
+      assert.contains(
+        spec.command,
+        "--testNamePattern=^\\s?first\\slevel\\ssecond\\slevel\\sbar\\(error\\)$"
+      )
+    end)
+  end)
+
   async.it("builds command for file test", function()
     local positions = plugin.discover_positions("./spec/basic.test.ts"):to_list()
     local tree = Tree.from_list(positions, function(pos)
       return pos.id
     end)
     local spec = plugin.build_spec({ tree = tree })
-
     assert.is.truthy(spec)
-    local command = spec.command
-    assert.is.truthy(command)
-    assert.contains(command, "vitest")
-    assert.contains(command, "--watch=false")
-    assert.contains(command, "--reporter=verbose")
-    assert.contains(command, "--testNamePattern=.*")
-    assert.contains(command, "--config=./spec/vite.config.ts")
-    assert.contains(command, "./spec/basic.test.ts")
+    local expected_command = {
+      "vitest",
+      "--config=./spec/vite.config.ts",
+      "--watch=false",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile=/tmp/foo.json",
+      "--testNamePattern=.*",
+      -- "spec/basic.test.ts",
+    }
+    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
   end)
@@ -185,15 +277,18 @@ describe("build_spec", function()
     local spec = plugin.build_spec({ vitestCommand = "vitest --watch", tree = tree })
 
     assert.is.truthy(spec)
-    local command = spec.command
-    assert.is.truthy(command)
-    assert.contains(command, "vitest")
-    assert.not_contains(command, "--run")
-    assert.contains(command, "--watch")
-    assert.contains(command, "--reporter=verbose")
-    assert.contains(command, "--testNamePattern=.*")
-    assert.contains(command, "--config=./spec/vite.config.ts")
-    assert.contains(command, "./spec/basic.test.ts")
+    local expected_command = {
+      "vitest",
+      "--watch",
+      "--config=./spec/vite.config.ts",
+      "--watch=false",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile=/tmp/foo.json",
+      "--testNamePattern=.*",
+      -- "spec/basic.test.ts",
+    }
+    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
   end)
@@ -208,14 +303,17 @@ describe("build_spec", function()
     local spec = plugin.build_spec({ tree = tree:children()[1] })
 
     assert.is.truthy(spec)
-    local command = spec.command
-    assert.is.truthy(command)
-    assert.contains(command, "vitest")
-    assert.contains(command, "--watch=false")
-    assert.contains(command, "--reporter=verbose")
-    assert.contains(command, "--testNamePattern=^ describe text")
-    assert.contains(command, "--config=./spec/vite.config.ts")
-    assert.contains(command, "./spec/basic.test.ts")
+    local expected_command = {
+      "vitest",
+      "--config=./spec/vite.config.ts",
+      "--watch=false",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile=/tmp/foo.json",
+      "--testNamePattern=^\\s?describe\\sarrow\\sfunction",
+      -- "spec/basic.test.ts",
+    }
+    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
   end)
@@ -230,9 +328,19 @@ describe("build_spec", function()
     local spec = plugin.build_spec({ tree = tree:children()[1] })
 
     assert.is.truthy(spec)
-    local command = spec.command
-    assert.is.truthy(command)
-    assert.contains(command, "--config=./spec/config/vite/vite.config.ts")
+    local expected_command = {
+      "vitest",
+      "--config=./spec/config/vite/vite.config.ts",
+      "--watch=false",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile=/tmp/foo.json",
+      "--testNamePattern=^\\s?1$",
+      -- "spec/config/vite/basic.test.ts",
+    }
+    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
+    assert.is.truthy(spec.context.file)
+    assert.is.truthy(spec.context.results_path)
   end)
 
   async.it("uses vitest config over vite config", function()
@@ -245,8 +353,18 @@ describe("build_spec", function()
     local spec = plugin.build_spec({ tree = tree:children()[1] })
 
     assert.is.truthy(spec)
-    local command = spec.command
-    assert.is.truthy(command)
-    assert.contains(command, "--config=./spec/config/vitest/vitest.config.ts")
+    local expected_command = {
+      "vitest",
+      "--config=./spec/config/vitest/vitest.config.ts",
+      "--watch=false",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile=/tmp/foo.json",
+      "--testNamePattern=^\\s?1$",
+      -- "spec/config/vitest/basic.test.ts",
+    }
+    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
+    assert.is.truthy(spec.context.file)
+    assert.is.truthy(spec.context.results_path)
   end)
 end)

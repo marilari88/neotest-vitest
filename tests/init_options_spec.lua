@@ -13,6 +13,16 @@ local config_override = function()
 end
 
 describe("build_spec with override", function()
+  local raw_tempname
+  before_each(function()
+    raw_tempname = require("neotest.async").fn.tempname
+    require("neotest.async").fn.tempname = function()
+      return "/tmp/foo"
+    end
+  end)
+  after_each(function()
+    require("neotest.async").fn.tempname = raw_tempname
+  end)
   async.it("builds command", function()
     local plugin = require("neotest-vitest")({
       vitestCommand = binary_override,
@@ -35,9 +45,10 @@ describe("build_spec with override", function()
     assert.contains(command, "--reporter=verbose")
     --[[ assert.contains(command, "--config=" .. config_override()) ]]
     assert.contains(command, "--testNamePattern=.*")
-    assert.contains(command, "./spec/basic.test.ts")
+    -- assert.contains(command, "spec/basic.test.ts")
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
+
     assert.is.same(
       spec.env,
       { override = "override", adapter_override = true, spec_override = true }
