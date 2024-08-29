@@ -15,8 +15,6 @@ local util = require("neotest-vitest.util")
 ---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
 
-local rootPackageJson = vim.fn.getcwd() .. "/package.json"
-
 ---@param packageJsonContent string
 ---@return boolean
 local function hasVitestDependencyInJson(packageJsonContent)
@@ -35,9 +33,22 @@ local function hasVitestDependencyInJson(packageJsonContent)
   return false
 end
 
+---@param localPackageDirectory string
+---@return string
+local function inferRootWorkspaceDirectory(localPackageDirectory)
+  --Find root package.json from local package.json
+  local parentDirectory = lib.files.parent(localPackageDirectory)
+  --Afaik there is no way to have more than two levels of workspaces so any package.json above the local one is the root
+  --Fall back to local package directory if we cannot find a root package.json
+  return lib.files.match_root_pattern("package.json")(parentDirectory) or localPackageDirectory
+end
+
+---@param localPackageDirectory string
 ---@return boolean
-local function hasRootProjectVitestDependency()
-  local success, packageJsonContent = pcall(lib.files.read, rootPackageJson)
+local function hasRootProjectVitestDependency(localPackageDirectory)
+  local rootPackageJsonDirectory = inferRootWorkspaceDirectory(localPackageDirectory)
+  local rootPackageJsonPath = rootPackageJsonDirectory .. "/package.json"
+  local success, packageJsonContent = pcall(lib.files.read, rootPackageJsonPath)
   if not success then
     print("cannot read package.json")
     return false
@@ -46,22 +57,55 @@ local function hasRootProjectVitestDependency()
   return hasVitestDependencyInJson(packageJsonContent)
 end
 
----@param path string
----@return boolean
-local function hasVitestDependency(path)
-  local rootPath = lib.files.match_root_pattern("package.json")(path)
+---@param localPackageDirectory string
+--@return boolean
+local function hasSomeWorkspacePackageVitestDependency(localPackageDirectory)
+  local rootWorkspaceDirectory = inferRootWorkspaceDirectory(localPackageDirectory)
 
-  if not rootPath then
-    return false
-  end
-
-  local success, packageJsonContent = pcall(lib.files.read, rootPath .. "/package.json")
+  local success, packageJsonContent =
+    pcall(lib.files.read, rootWorkspaceDirectory .. "/package.json")
   if not success then
     print("cannot read package.json")
     return false
   end
 
-  return hasVitestDependencyInJson(packageJsonContent) or hasRootProjectVitestDependency()
+  local parsedPackageJson = vim.json.decode(packageJsonContent)
+  if not parsedPackageJson["workspaces"] then
+    return false
+  end
+
+  for _, workspace in ipairs(parsedPackageJson["workspaces"]) do
+    local workspacePackageJson = rootWorkspaceDirectory .. "/" .. workspace .. "/package.json"
+    local success, parsedWorkspacePackageJson = pcall(lib.files.read, workspacePackageJson)
+    if not success then
+      print("cannot read " .. workspace .. "/package.json")
+      return false
+    end
+    if hasVitestDependencyInJson(parsedWorkspacePackageJson) then
+      return true
+    end
+  end
+end
+
+---@param path string
+---@return boolean
+local function hasVitestDependency(path)
+  local localPackageDirectory = lib.files.match_root_pattern("package.json")(path)
+
+  if not localPackageDirectory then
+    return false
+  end
+
+  local success, packageJsonContent =
+    pcall(lib.files.read, localPackageDirectory .. "/package.json")
+  if not success then
+    print("cannot read package.json")
+    return false
+  end
+
+  return hasVitestDependencyInJson(packageJsonContent)
+    or hasRootProjectVitestDependency(localPackageDirectory)
+    or hasSomeWorkspacePackageVitestDependency(localPackageDirectory)
 end
 
 adapter.root = function(path)
