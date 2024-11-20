@@ -243,7 +243,7 @@ end
 ---@param path string
 ---@return string|nil
 local function getCwd(path)
-  return nil
+  return util.find_node_modules_ancestor(path)
 end
 
 ---@param args neotest.RunArgs
@@ -292,7 +292,6 @@ function adapter.build_spec(args)
   })
 
   local cwd = getCwd(pos.path)
-
   -- creating empty file for streaming results
   lib.files.write(results_path, "")
   local stream_data, stop_stream = util.stream(results_path)
