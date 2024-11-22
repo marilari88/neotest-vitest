@@ -367,4 +367,28 @@ describe("build_spec", function()
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
   end)
+
+  async.it("gets correct working directory in monorepo", function()
+    local positions = plugin.discover_positions("./spec-monorepo/packages/example/basic.test.ts"):to_list()
+
+    local tree = Tree.from_list(positions, function(pos)
+      return pos.id
+    end)
+
+    local spec = plugin.build_spec({ tree = tree })
+
+    assert.is.truthy(spec)
+    local expected_command = {
+      "vitest",
+      "--config=./spec-monorepo/packages/example/vitest.config.ts",
+      "--watch=false",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile=/tmp/foo.json",
+      "--testNamePattern=.*",
+      -- "spec-monorepo/apps/todo/todo.test.tsx",
+    }
+    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
+    assert.is.same(spec.cwd, "./spec-monorepo/packages/example")
+  end)
 end)
