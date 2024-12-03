@@ -1,4 +1,4 @@
-local vim = vim
+local logger = require("neotest.logging")
 local validate = vim.validate
 local uv = vim.loop
 
@@ -227,6 +227,71 @@ function M.stream(file_path)
   async.run(stop)
 
   return queue.get, exit_future.set
+end
+
+function M.cleanAnsi(s)
+  return s:gsub("\x1b%[%d+;%d+;%d+;%d+;%d+m", "")
+    :gsub("\x1b%[%d+;%d+;%d+;%d+m", "")
+    :gsub("\x1b%[%d+;%d+;%d+m", "")
+    :gsub("\x1b%[%d+;%d+m", "")
+    :gsub("\x1b%[%d+m", "")
+end
+function M.parsed_json_to_results(data, output_file, consoleOut)
+  local tests = {}
+
+  for _, testResult in pairs(data.testResults) do
+    local testFn = testResult.name
+
+    for _, assertionResult in pairs(testResult.assertionResults) do
+      local status, name = assertionResult.status, assertionResult.title
+
+      if name == nil then
+        logger.error("Failed to find parsed test result ", assertionResult)
+        return {}
+      end
+
+      local keyid = testFn
+
+      for _, value in ipairs(assertionResult.ancestorTitles) do
+        if value ~= "" then
+          keyid = keyid .. "::" .. value
+        end
+      end
+
+      keyid = keyid .. "::" .. name
+
+      if status == "pending" or status == "todo" then
+        status = "skipped"
+      end
+
+      tests[keyid] = {
+        status = status,
+        short = name .. ": " .. status,
+        output = consoleOut,
+        location = assertionResult.location,
+      }
+
+      if not vim.tbl_isempty(assertionResult.failureMessages) then
+        local errors = {}
+
+        for i, failMessage in ipairs(assertionResult.failureMessages) do
+          local msg = M.cleanAnsi(failMessage)
+
+          errors[i] = {
+            line = (assertionResult.location and assertionResult.location.line - 1 or nil),
+            column = (assertionResult.location and assertionResult.location.column or nil),
+            message = msg,
+          }
+
+          tests[keyid].short = tests[keyid].short .. "\n" .. msg
+        end
+
+        tests[keyid].errors = errors
+      end
+    end
+  end
+
+  return tests
 end
 
 return M
