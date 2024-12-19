@@ -49,19 +49,34 @@ end
 ---@param path string
 ---@return boolean
 local function hasVitestDependency(path)
-  local rootPath = lib.files.match_root_pattern("package.json")(path)
+  local nodeRootPath = lib.files.match_root_pattern("package.json")(path)
 
-  if not rootPath then
+  if not nodeRootPath then
     return false
   end
 
-  local success, packageJsonContent = pcall(lib.files.read, rootPath .. "/package.json")
-  if not success then
+  local nodeRootSuccess, nodeRootPackageJsonContent =
+    pcall(lib.files.read, nodeRootPath .. "/package.json")
+  if not nodeRootSuccess then
     print("cannot read package.json")
     return false
   end
 
-  return hasVitestDependencyInJson(packageJsonContent) or hasRootProjectVitestDependency()
+  local gitRootPath = util.find_git_ancestor(path)
+  local hasRootMonorepoVitestDependency = false
+
+  -- only check the git root's package.json if it's different (e.g. in monorepos)
+  if nodeRootPath ~= gitRootPath then
+    local gitRootSuccess, gitRootPackageJsonContent =
+      pcall(lib.files.read, gitRootPath .. "/package.json")
+    if gitRootSuccess then
+      hasRootMonorepoVitestDependency = hasVitestDependencyInJson(gitRootPackageJsonContent)
+    end
+  end
+
+  return hasVitestDependencyInJson(nodeRootPackageJsonContent)
+    or hasRootProjectVitestDependency()
+    or hasRootMonorepoVitestDependency
 end
 
 adapter.root = function(path)
