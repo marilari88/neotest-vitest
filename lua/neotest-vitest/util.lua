@@ -171,6 +171,14 @@ function M.root_pattern(...)
   end
 end
 
+function M.find_git_ancestor(startpath)
+  return M.search_ancestors(startpath, function(path)
+    -- .git is a file when the project is a git worktree or it's a directory if it's a regular project
+    if M.path.is_file(M.path.join(path, ".git")) or M.path.is_dir(M.path.join(path, ".git")) then
+      return path
+    end
+  end)
+end
 function M.find_node_modules_ancestor(startpath)
   return M.search_ancestors(startpath, function(path)
     if M.path.is_dir(M.path.join(path, "node_modules")) then
