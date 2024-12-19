@@ -65,7 +65,7 @@ local function hasVitestDependency(path)
   local hasRootMonorepoVitestDependency = false
 
   -- only check the git root's package.json if it's different (e.g. in monorepos)
-  if rootPath ~= gitRootPath then
+  if gitRootPath and rootPath ~= gitRootPath then
     local monorepoSuccess, monorepoRootPackageJsonContent =
       pcall(lib.files.read, gitRootPath .. "/package.json")
     if monorepoSuccess then
@@ -175,10 +175,11 @@ local function getVitestCommand(path)
   end
 
   local gitRootPath = util.find_git_ancestor(path)
-  vitestBinary = util.path.join(gitRootPath, "node_modules", ".bin", "vitest")
-
-  if util.path.exists(vitestBinary) then
-    return vitestBinary
+  if gitRootPath then
+    vitestBinary = util.path.join(gitRootPath, "node_modules", ".bin", "vitest")
+    if util.path.exists(vitestBinary) then
+      return vitestBinary
+    end
   end
 
   return "vitest"
