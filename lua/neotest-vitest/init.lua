@@ -55,7 +55,7 @@ local function hasVitestDependency(path)
     return false
   end
 
-  local success, rootPackageJsonContent = pcall(lib.files.read, rootPath .. "/package.json")
+  local success, packageJsonContent = pcall(lib.files.read, rootPath .. "/package.json")
   if not success then
     print("cannot read package.json")
     return false
@@ -73,7 +73,7 @@ local function hasVitestDependency(path)
     end
   end
 
-  return hasVitestDependencyInJson(rootPackageJsonContent)
+  return hasVitestDependencyInJson(packageJsonContent)
     or hasRootProjectVitestDependency()
     or hasRootMonorepoVitestDependency
 end
@@ -167,8 +167,8 @@ end
 ---@param path string
 ---@return string
 local function getVitestCommand(path)
-  local nodeRootPath = util.find_node_modules_ancestor(path)
-  local vitestBinary = util.path.join(nodeRootPath, "node_modules", ".bin", "vitest")
+  local rootPath = util.find_node_modules_ancestor(path)
+  local vitestBinary = util.path.join(rootPath, "node_modules", ".bin", "vitest")
 
   if util.path.exists(vitestBinary) then
     return vitestBinary
