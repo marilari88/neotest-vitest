@@ -84,7 +84,7 @@ function adapter.is_test_file(file_path)
     is_test_file = true
   end
 
-  for _, x in ipairs({ "spec", "test" }) do
+  for _, x in ipairs({ "e2e", "spec", "test" }) do
     for _, ext in ipairs({ "js", "jsx", "coffee", "ts", "tsx" }) do
       if string.match(file_path, "%." .. x .. "%." .. ext .. "$") then
         is_test_file = true
@@ -153,8 +153,15 @@ end
 ---@param path string
 ---@return string
 local function getVitestCommand(path)
-  local rootPath = util.find_node_modules_ancestor(path)
-  local vitestBinary = util.path.join(rootPath, "node_modules", ".bin", "vitest")
+  local nodeRootPath = util.find_node_modules_ancestor(path)
+  local vitestBinary = util.path.join(nodeRootPath, "node_modules", ".bin", "vitest")
+
+  if util.path.exists(vitestBinary) then
+    return vitestBinary
+  end
+
+  local gitRootPath = util.find_git_ancestor(path)
+  vitestBinary = util.path.join(gitRootPath, "node_modules", ".bin", "vitest")
 
   if util.path.exists(vitestBinary) then
     return vitestBinary
