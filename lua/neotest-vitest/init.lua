@@ -15,8 +15,6 @@ local util = require("neotest-vitest.util")
 ---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
 
-local rootPackageJson = vim.fn.getcwd() .. "/package.json"
-
 ---@param packageJsonContent string
 ---@return boolean
 local function hasVitestDependencyInJson(packageJsonContent)
@@ -37,9 +35,11 @@ end
 
 ---@return boolean
 local function hasRootProjectVitestDependency()
+  local rootPackageJson = vim.loop.cwd() .. "/package.json"
+
   local success, packageJsonContent = pcall(lib.files.read, rootPackageJson)
   if not success then
-    print("cannot read package.json")
+    print("cannot read package.json, got " .. rootPackageJson)
     return false
   end
 
