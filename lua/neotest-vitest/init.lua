@@ -15,8 +15,6 @@ local util = require("neotest-vitest.util")
 ---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
 
-local rootPackageJson = vim.fn.getcwd() .. "/package.json"
-
 ---@param packageJsonContent string
 ---@return boolean
 local function hasVitestDependencyInJson(packageJsonContent)
@@ -37,9 +35,11 @@ end
 
 ---@return boolean
 local function hasRootProjectVitestDependency()
+  local rootPackageJson = vim.loop.cwd() .. "/package.json"
+
   local success, packageJsonContent = pcall(lib.files.read, rootPackageJson)
   if not success then
-    print("cannot read package.json")
+    print("cannot read package.json, got " .. rootPackageJson)
     return false
   end
 
@@ -61,7 +61,21 @@ local function hasVitestDependency(path)
     return false
   end
 
-  return hasVitestDependencyInJson(packageJsonContent) or hasRootProjectVitestDependency()
+  local gitRootPath = util.find_git_ancestor(path)
+  local hasRootMonorepoVitestDependency = false
+
+  -- only check the git root's package.json if it's different (e.g. in monorepos)
+  if gitRootPath and rootPath ~= gitRootPath then
+    local monorepoSuccess, monorepoRootPackageJsonContent =
+      pcall(lib.files.read, gitRootPath .. "/package.json")
+    if monorepoSuccess then
+      hasRootMonorepoVitestDependency = hasVitestDependencyInJson(monorepoRootPackageJsonContent)
+    end
+  end
+
+  return hasVitestDependencyInJson(packageJsonContent)
+    or hasRootProjectVitestDependency()
+    or hasRootMonorepoVitestDependency
 end
 
 adapter.root = function(path)
@@ -84,7 +98,7 @@ function adapter.is_test_file(file_path)
     is_test_file = true
   end
 
-  for _, x in ipairs({ "spec", "test" }) do
+  for _, x in ipairs({ "e2e", "spec", "test" }) do
     for _, ext in ipairs({ "js", "jsx", "coffee", "ts", "tsx" }) do
       if string.match(file_path, "%." .. x .. "%." .. ext .. "$") then
         is_test_file = true
@@ -158,6 +172,14 @@ local function getVitestCommand(path)
 
   if util.path.exists(vitestBinary) then
     return vitestBinary
+  end
+
+  local gitRootPath = util.find_git_ancestor(path)
+  if gitRootPath then
+    vitestBinary = util.path.join(gitRootPath, "node_modules", ".bin", "vitest")
+    if util.path.exists(vitestBinary) then
+      return vitestBinary
+    end
   end
 
   return "vitest"
