@@ -39,9 +39,6 @@ jobs:
           neovim: true
           version: ${{ matrix.neovim_version }}
 
-      - name: Prepare dependencies
-        run: |
-          ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
       - name: Run tests
         run: |
           export PATH="${PWD}/_neovim/bin:${PATH}"
