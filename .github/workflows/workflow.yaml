@@ -13,7 +13,7 @@ concurrency:
 jobs:
   stylua:
     name: stylua
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
       - uses: JohnnyMorganz/stylua-action@1.0.0
@@ -31,8 +31,8 @@ jobs:
         include:
           - os: ubuntu-22.04
             url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
-          - os: ubuntu-20.04
-            url: https://github.com/neovim/neovim/releases/download/v0.9.5/nvim-linux64.tar.gz
+          - os: ubuntu-22.04
+            url: https://github.com/neovim/neovim/releases/download/v0.10.0/nvim-linux64.tar.gz
 
     steps:
       - uses: actions/checkout@v2
