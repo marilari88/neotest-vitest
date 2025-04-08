@@ -24,32 +24,23 @@ jobs:
           version: 0.14.3
   unit_tests:
     name: unit tests
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-22.04
-            url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
-          - os: ubuntu-22.04
-            url: https://github.com/neovim/neovim/releases/download/v0.10.0/nvim-linux64.tar.gz
+        os: [ubuntu-latest]
+        neovim_version: ['v0.10.0', 'nightly']
+    runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
-      - run: date +%F > todays-date
-      - name: Restore cache for today's nightly.
-        uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - name: Setup neovim
+        uses: rhysd/action-setup-vim@v1
         with:
-          path: _neovim
-          key: ${{ runner.os }}-x64-${{ hashFiles('todays-date') }}
+          neovim: true
+          version: ${{ matrix.neovim_version }}
 
       - name: Prepare dependencies
         run: |
-          test -d _neovim || {
-            mkdir -p _neovim
-            curl -sL ${{ matrix.url }} | tar xzf - --strip-components=1 -C "${PWD}/_neovim"
-          }
-          mkdir -p ~/.local/share/nvim/site/pack/vendor/start
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
       - name: Run tests
         run: |
