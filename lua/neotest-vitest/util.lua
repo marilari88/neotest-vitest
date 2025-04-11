@@ -65,7 +65,7 @@ M.path = (function()
   end
 
   local function path_join(...)
-    return table.concat(vim.tbl_flatten({ ... }), "/")
+    return table.concat(vim.iter({ ... }):flatten():totable(), "/")
   end
 
   -- Traverse the path calling cb along the way.
