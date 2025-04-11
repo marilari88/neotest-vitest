@@ -156,7 +156,7 @@ function M.search_ancestors(startpath, func)
 end
 
 function M.root_pattern(...)
-  local patterns = vim.tbl_flatten({ ... })
+  local patterns = vim.iter({ ... }):flatten():totable()
   local function matcher(path)
     for _, pattern in ipairs(patterns) do
       for _, p in ipairs(vim.fn.glob(M.path.join(path, pattern), true, true)) do
