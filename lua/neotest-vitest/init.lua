@@ -278,7 +278,7 @@ function adapter.build_spec(args)
     return
   end
   local names = {}
-  while tree and tree:data().type ~= "file" do
+  while tree and tree:data().type ~= "file" and tree:data().type ~= "dir" do
     table.insert(names, 1, tree:data().name)
     tree = tree:parent() --[[@as neotest.Tree]]
   end
