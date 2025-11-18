@@ -313,6 +313,8 @@ function adapter.build_spec(args)
     vim.fs.normalize(pos.path),
   })
 
+  vim.list_extend(command, args.extra_args or {})
+
   local cwd = getCwd(pos.path)
 
   -- creating empty file for streaming results
