@@ -265,7 +265,7 @@ end
 ---@param path string
 ---@return string|nil
 local function getCwd(path)
-  return nil
+  return vitestConfigPattern(path) or util.find_node_modules_ancestor(path)
 end
 
 ---@param args neotest.RunArgs
