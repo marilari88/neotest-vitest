@@ -23,7 +23,7 @@ local function hasVitestDependencyInJson(packageJsonContent)
   for _, dependencyType in ipairs({ "dependencies", "devDependencies" }) do
     if parsedPackageJson[dependencyType] then
       for key, _ in pairs(parsedPackageJson[dependencyType]) do
-        if key == "vitest" then
+        if key == "vitest" or key == "@vitest/ui" or key == "@vitest/coverage-v8" then
           return true
         end
       end
