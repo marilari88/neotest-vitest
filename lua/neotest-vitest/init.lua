@@ -23,7 +23,7 @@ local function hasVitestDependencyInJson(packageJsonContent)
   for _, dependencyType in ipairs({ "dependencies", "devDependencies" }) do
     if parsedPackageJson[dependencyType] then
       for key, _ in pairs(parsedPackageJson[dependencyType]) do
-        if key == "vitest" then
+        if key == "vitest" or key == "@vitest/ui" or key == "@vitest/coverage-v8" then
           return true
         end
       end
@@ -265,7 +265,7 @@ end
 ---@param path string
 ---@return string|nil
 local function getCwd(path)
-  return nil
+  return vitestConfigPattern(path) or util.find_node_modules_ancestor(path)
 end
 
 ---@param args neotest.RunArgs
@@ -312,6 +312,8 @@ function adapter.build_spec(args)
     "--testNamePattern=" .. testNamePattern,
     vim.fs.normalize(pos.path),
   })
+
+  vim.list_extend(command, args.extra_args or {})
 
   local cwd = getCwd(pos.path)
 
