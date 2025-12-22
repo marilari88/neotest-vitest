@@ -136,6 +136,13 @@ function adapter.discover_positions(path)
       )
       arguments: (arguments (string (string_fragment) @namespace.name) (arrow_function))
     )) @namespace.definition
+    ; Matches: `layer(...)('context', () => ...)` (@effect/vitest syntax)
+    ((call_expression
+      function: (call_expression
+        function: (identifier) @func_name (#eq? @func_name "layer")
+      )
+      arguments: (arguments (string (string_fragment) @namespace.name) (arrow_function))
+    )) @namespace.definition
 
     ; -- Tests --
     ; Matches: `test('test') / it('test')`
