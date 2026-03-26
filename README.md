@@ -146,6 +146,24 @@ filter_dir = function(name, rel_path, root)
 end
 ```
 
+### Custom debug configuration
+
+Use the `strategy_config` option to override / extend the default [nvim-dap](https://github.com/mfussenegger/nvim-dap) configuration.
+
+```lua
+---Disable test timeouts during debug sessions
+---@param default table The default DAP config provided by neotest-vitest
+---@param args neotest.RunArgs
+---@return table
+strategy_config = function(default, args)
+  if args.strategy == "dap" then
+    return vim.tbl_deep_extend("force", default, {
+        args = vim.list_extend(vim.list_slice(default.args), { "--testTimeout=0" })
+    })
+  end
+end
+```
+
 ### Watch mode mappings
 
 ```lua

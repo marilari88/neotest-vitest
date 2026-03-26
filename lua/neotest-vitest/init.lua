@@ -11,6 +11,7 @@ local util = require("neotest-vitest.util")
 ---@field cwd? string|fun(): string
 ---@field filter_dir? fun(name: string, relpath: string, root: string): boolean
 ---@field is_test_file? fun(file_path: string): boolean
+---@field strategy_config? table<string, unknown>|fun(default: table, args: neotest.RunArgs): table<string, unknown>
 
 ---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
@@ -245,7 +246,7 @@ local function escapeTestPattern(s)
   )
 end
 
-local function get_strategy_config(strategy, command, cwd)
+local function getDefaultStrategyConfig(strategy, command, cwd)
   local config = {
     dap = function()
       return {
@@ -273,6 +274,10 @@ end
 ---@return string|nil
 local function getCwd(path)
   return vitestConfigPattern(path) or util.find_node_modules_ancestor(path)
+end
+
+local function getStrategyConfig(defaultStrategyConfig, args)
+  return defaultStrategyConfig
 end
 
 ---@param args neotest.RunArgs
@@ -353,7 +358,7 @@ function adapter.build_spec(args)
         return util.parsed_json_to_results(parsed, results_path, nil)
       end
     end,
-    strategy = get_strategy_config(args.strategy, command, cwd),
+    strategy = getStrategyConfig(getDefaultStrategyConfig(args.strategy, command, cwd) or {}, args),
     env = getEnv(args[2] and args[2].env or {}),
   }
 end
@@ -421,6 +426,14 @@ setmetatable(adapter, {
     elseif opts.cwd then
       getCwd = function()
         return opts.cwd
+      end
+    end
+
+    if is_callable(opts.strategy_config) then
+      getStrategyConfig = opts.strategy_config
+    elseif opts.strategy_config then
+      getStrategyConfig = function()
+        return opts.strategy_config
       end
     end
 
