@@ -10,7 +10,9 @@ local util = require("neotest-vitest.util")
 ---@field env? table<string, string>|fun(): table<string, string>
 ---@field cwd? string|fun(): string
 ---@field filter_dir? fun(name: string, relpath: string, root: string): boolean
----@field is_test_file? fun(file_path: string): boolean
+---@field is_test_file async fun(file_path: string): boolean # checks if a file is a test file via `vitest list --json`, cached with 3s TTL using `singleflight` for concurrent request coalescing
+---@field discovery_ttl_ms integer # cache TTL in milliseconds for discovery operations (default: 3s)
+---@field discovery_timeout_ms integer # timeout in milliseconds for discovery operations (default: 10s)
 
 ---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
@@ -89,25 +91,19 @@ end
 ---@param file_path? string
 ---@return boolean
 function adapter.is_test_file(file_path)
-  if file_path == nil then
+  local success, test_files = pcall(adapter.get_test_files)
+  if not success then
+    if type(test_files) == "string" and string.match(test_files, "singleflight: timeout after") then
+        vim.notify("Vitest test file discovery (`vitest list --json --filesOnly`) timed out. Please consider increasing discovery_timeout_ms if your project is large, or customizing `is_test_file` to avoid using the discovery mechanism.",
+            vim.log.levels.WARN, {
+            -- avoid noice
+            id = "neotest-vitest-discovery-timeout",
+            title = "neotest-vitest",
+        })
+    end
     return false
   end
-  local is_test_file = false
-
-  if string.match(file_path, "__tests__") then
-    is_test_file = true
-  end
-
-  for _, x in ipairs({ "e2e", "spec", "test" }) do
-    for _, ext in ipairs({ "js", "jsx", "coffee", "ts", "tsx" }) do
-      if string.match(file_path, "%." .. x .. "%." .. ext .. "$") then
-        is_test_file = true
-        goto matched_pattern
-      end
-    end
-  end
-  ::matched_pattern::
-  return is_test_file and hasVitestDependency(file_path)
+  return vim.list_contains(test_files, file_path) and hasVitestDependency(file_path)
 end
 
 ---@async
@@ -433,6 +429,23 @@ setmetatable(adapter, {
         return hasVitestDependency(file_path) and opts.is_test_file(file_path)
       end
     end
+
+    ---@async
+    local function get_vitest_test_files()
+        local nio = require("nio")
+        local vitestBinary = getVitestCommand(vim.loop.cwd())
+        local command = vim.split(vitestBinary, "%s+")
+        local process = assert(nio.process.run({
+            cmd = command[1],
+            args = { "list", "--json", "--filesOnly" },
+        }))
+        process.result()
+        return vim.iter(vim.json.decode(process.stdout.read())):map(function(test)
+            return test.file
+        end):unique():totable()
+    end
+    adapter.get_test_files = require("neotest-vitest.util").singleflight(get_vitest_test_files, { ttl_ms = opts.discovery_ttl_ms or 3000, timeout_ms = opts.discovery_timeout_ms or 10000 })
+
 
     return adapter
   end,
