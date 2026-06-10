@@ -312,13 +312,23 @@ function adapter.build_spec(args)
   end
 
   vim.list_extend(command, {
-    "--watch=false",
     "--reporter=verbose",
     "--reporter=json",
     "--outputFile=" .. results_path,
     "--testNamePattern=" .. testNamePattern,
     vim.fs.normalize(pos.path),
   })
+
+  if
+    not vim.list_contains(command, "-w")
+    and not vim.list_contains(command, "--watch")
+    and not vim.list_contains(command, "--watch=true")
+    and not vim.list_contains(command, "--watch=false")
+  then
+    vim.list_extend(command, {
+      "--watch=false",
+    })
+  end
 
   vim.list_extend(command, args.extra_args or {})
 
