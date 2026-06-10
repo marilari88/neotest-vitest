@@ -311,6 +311,16 @@ function adapter.build_spec(args)
     table.insert(command, "--config=" .. config)
   end
 
+  vim.list_extend(command, {
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile=" .. results_path,
+    "--testNamePattern=" .. testNamePattern,
+    vim.fs.normalize(pos.path),
+  })
+
+  vim.list_extend(command, args.extra_args or {})
+
   if
     not vim.list_contains(command, "-w")
     and not vim.list_contains(command, "--watch")
@@ -321,16 +331,6 @@ function adapter.build_spec(args)
       "--watch=false",
     })
   end
-
-  vim.list_extend(command, {
-    "--reporter=verbose",
-    "--reporter=json",
-    "--outputFile=" .. results_path,
-    "--testNamePattern=" .. testNamePattern,
-    vim.fs.normalize(pos.path),
-  })
-
-  vim.list_extend(command, args.extra_args or {})
 
   local cwd = getCwd(pos.path)
 
