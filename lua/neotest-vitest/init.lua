@@ -9,6 +9,7 @@ local util = require("neotest-vitest.util")
 ---@field vitestConfigFile? string|fun(): string
 ---@field env? table<string, string>|fun(): table<string, string>
 ---@field cwd? string|fun(): string
+---@field reporters? string|string[]|fun(): string|string[]
 ---@field filter_dir? fun(name: string, relpath: string, root: string): boolean
 ---@field is_test_file? fun(file_path: string): boolean
 
@@ -275,7 +276,34 @@ local function getCwd(path)
   return vitestConfigPattern(path) or util.find_node_modules_ancestor(path)
 end
 
----@param args neotest.RunArgs
+---@return string[]
+local function getReporters()
+  return { "verbose", "json" }
+end
+
+---@param reporters string|string[]
+---@return string[]
+local function withJsonReporter(reporters)
+  if type(reporters) == "string" then
+    reporters = { reporters }
+  end
+
+  local hasJsonReporter = false
+  for _, reporter in ipairs(reporters) do
+    if reporter == "json" then
+      hasJsonReporter = true
+      break
+    end
+  end
+
+  if hasJsonReporter then
+    return reporters
+  end
+
+  return vim.list_extend(vim.deepcopy(reporters), { "json" })
+end
+
+---@param args neotest.RunArgs|{ reporters?: string|string[] }
 ---@return neotest.RunSpec | nil
 function adapter.build_spec(args)
   local results_path = async.fn.tempname() .. ".json"
@@ -313,8 +341,13 @@ function adapter.build_spec(args)
 
   vim.list_extend(command, {
     "--watch=false",
-    "--reporter=verbose",
-    "--reporter=json",
+  })
+
+  for _, reporter in ipairs(args.reporters and withJsonReporter(args.reporters) or getReporters()) do
+    table.insert(command, "--reporter=" .. reporter)
+  end
+
+  vim.list_extend(command, {
     "--outputFile=" .. results_path,
     "--testNamePattern=" .. testNamePattern,
     vim.fs.normalize(pos.path),
@@ -421,6 +454,16 @@ setmetatable(adapter, {
     elseif opts.cwd then
       getCwd = function()
         return opts.cwd
+      end
+    end
+
+    if is_callable(opts.reporters) then
+      getReporters = function()
+        return withJsonReporter(opts.reporters())
+      end
+    elseif opts.reporters then
+      getReporters = function()
+        return withJsonReporter(opts.reporters)
       end
     end
 

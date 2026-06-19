@@ -87,6 +87,9 @@ Make sure you have Treesitter installed with the right language parser installed
       ...,
       adapters = {
         require("neotest-vitest") {
+          -- Override Vitest terminal reporters. The JSON reporter is always added for result parsing.
+          reporters = { "minimal" },
+
           -- Filter directories when searching for test files. Useful in large projects (see Filter directories notes).
           filter_dir = function(name, rel_path, root)
             return name ~= "node_modules"
@@ -96,6 +99,12 @@ Make sure you have Treesitter installed with the right language parser installed
     })
   end,
 }
+```
+
+You can also override reporters for a single run:
+
+```lua
+require("neotest").run.run({ reporters = { "minimal" } })
 ```
 
 ### Stricter file parsing to determine test files
