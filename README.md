@@ -101,6 +101,12 @@ Make sure you have Treesitter installed with the right language parser installed
 }
 ```
 
+You can also override reporters for a single run:
+
+```lua
+require("neotest").run.run({ reporters = { "minimal" } })
+```
+
 ### Stricter file parsing to determine test files
 
 Use `is_test_file` option to add a custom criteria for test file discovery.

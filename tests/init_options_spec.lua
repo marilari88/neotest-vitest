@@ -80,4 +80,30 @@ describe("build_spec with override", function()
       reporters = { "verbose", "json" },
     })
   end)
+
+  async.it("builds command with run reporters", function()
+    local plugin = require("neotest-vitest")({
+      vitestCommand = binary_override,
+      vitestConfigFile = config_override,
+      reporters = { "verbose" },
+    })
+
+    local positions = plugin.discover_positions("./spec/basic.test.ts"):to_list()
+    local tree = Tree.from_list(positions, function(pos)
+      return pos.id
+    end)
+    local spec = plugin.build_spec({ tree = tree, reporters = { "minimal" } })
+
+    assert.is.truthy(spec)
+
+    local command = spec.command
+    assert.is.truthy(command)
+    assert.contains(command, "--reporter=minimal")
+    assert.contains(command, "--reporter=json")
+    assert.is.falsy(vim.tbl_contains(command, "--reporter=verbose"))
+
+    require("neotest-vitest")({
+      reporters = { "verbose", "json" },
+    })
+  end)
 end)

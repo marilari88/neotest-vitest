@@ -303,7 +303,7 @@ local function withJsonReporter(reporters)
   return vim.list_extend(vim.deepcopy(reporters), { "json" })
 end
 
----@param args neotest.RunArgs
+---@param args neotest.RunArgs|{ reporters?: string|string[] }
 ---@return neotest.RunSpec | nil
 function adapter.build_spec(args)
   local results_path = async.fn.tempname() .. ".json"
@@ -343,7 +343,7 @@ function adapter.build_spec(args)
     "--watch=false",
   })
 
-  for _, reporter in ipairs(getReporters()) do
+  for _, reporter in ipairs(args.reporters and withJsonReporter(args.reporters) or getReporters()) do
     table.insert(command, "--reporter=" .. reporter)
   end
 
