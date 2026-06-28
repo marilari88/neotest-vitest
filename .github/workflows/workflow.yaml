@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        neovim_version: ['v0.10.0', 'nightly']
+        neovim_version: ['v0.12.3', 'nightly']
     runs-on: ${{ matrix.os }}
 
     steps:
