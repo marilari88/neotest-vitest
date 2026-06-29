@@ -257,14 +257,14 @@ describe("build_spec", function()
     local expected_command = {
       "vitest",
       "--config=./spec/vite.config.ts",
-      "--watch=false",
       "--reporter=verbose",
       "--reporter=json",
       "--outputFile=/tmp/foo.json",
       "--testNamePattern=.*",
-      -- "spec/basic.test.ts",
+      "spec/basic.test.ts",
+      "--watch=false",
     }
-    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
+    assert.is.same(expected_command, spec.command)
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
   end)
@@ -281,16 +281,28 @@ describe("build_spec", function()
       "vitest",
       "--watch",
       "--config=./spec/vite.config.ts",
-      "--watch=false",
       "--reporter=verbose",
       "--reporter=json",
       "--outputFile=/tmp/foo.json",
       "--testNamePattern=.*",
-      -- "spec/basic.test.ts",
+      "spec/basic.test.ts",
     }
-    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
+    assert.is.same(expected_command, spec.command)
+    assert.is.falsy(vim.list_contains(spec.command, "--watch=false"))
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
+  end)
+
+  async.it("builds command passed watch flag via extra_args", function()
+    local positions = plugin.discover_positions("./spec/basic.test.ts"):to_list()
+    local tree = Tree.from_list(positions, function(pos)
+      return pos.id
+    end)
+    local spec = plugin.build_spec({ tree = tree, extra_args = { "--watch" } })
+
+    assert.is.truthy(spec)
+    assert.is.falsy(vim.list_contains(spec.command, "--watch=false"))
+    assert.is.truthy(vim.list_contains(spec.command, "--watch"))
   end)
 
   async.it("builds command for namespace", function()
@@ -306,14 +318,14 @@ describe("build_spec", function()
     local expected_command = {
       "vitest",
       "--config=./spec/vite.config.ts",
-      "--watch=false",
       "--reporter=verbose",
       "--reporter=json",
       "--outputFile=/tmp/foo.json",
       "--testNamePattern=^\\s?describe\\sarrow\\sfunction",
-      -- "spec/basic.test.ts",
+      "spec/basic.test.ts",
+      "--watch=false",
     }
-    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
+    assert.is.same(expected_command, spec.command)
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
   end)
@@ -331,14 +343,14 @@ describe("build_spec", function()
     local expected_command = {
       "vitest",
       "--config=./spec/config/vite/vite.config.ts",
-      "--watch=false",
       "--reporter=verbose",
       "--reporter=json",
       "--outputFile=/tmp/foo.json",
       "--testNamePattern=^\\s?1$",
-      -- "spec/config/vite/basic.test.ts",
+      "spec/config/vite/basic.test.ts",
+      "--watch=false",
     }
-    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
+    assert.is.same(expected_command, spec.command)
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
   end)
@@ -356,14 +368,14 @@ describe("build_spec", function()
     local expected_command = {
       "vitest",
       "--config=./spec/config/vitest/vitest.config.ts",
-      "--watch=false",
       "--reporter=verbose",
       "--reporter=json",
       "--outputFile=/tmp/foo.json",
       "--testNamePattern=^\\s?1$",
-      -- "spec/config/vitest/basic.test.ts",
+      "spec/config/vitest/basic.test.ts",
+      "--watch=false",
     }
-    assert.is.same(expected_command, vim.list_slice(spec.command, 0, #spec.command - 1))
+    assert.is.same(expected_command, spec.command)
     assert.is.truthy(spec.context.file)
     assert.is.truthy(spec.context.results_path)
   end)
