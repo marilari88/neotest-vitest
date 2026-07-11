@@ -1,6 +1,75 @@
 local util = require("neotest-vitest.util")
 
 describe("parse json reporter to result", function()
+  it("failing test with stack trace", function()
+    local json = {
+      success = true,
+      testResults = {
+        {
+          assertionResults = {
+            {
+              ancestorTitles = { "", "describe arrow function" },
+              fullName = " describe arrow function foo",
+              status = "skipped",
+              title = "foo",
+              failureMessages = {},
+            },
+            {
+              ancestorTitles = { "", "describe arrow function" },
+              duration = 3,
+              failureMessages = {
+                "expected true to equal false\n  at /neotest-vitest/spec/basic.test.ts:9:25",
+              },
+              fullName = " describe arrow function bar(error)",
+              location = {
+                column = 43,
+                line = 8,
+              },
+              status = "failed",
+              title = "bar(error)",
+            },
+            {
+              ancestorTitles = { "", "describe vanilla function" },
+              fullName = " describe vanilla function bar",
+              status = "skipped",
+              title = "bar",
+              failureMessages = {},
+            },
+          },
+
+          name = "spec/basic.test.ts",
+        },
+      },
+    }
+    local result = util.parsed_json_to_results(json, nil, nil)
+    local expected_result = {
+      ["spec/basic.test.ts::describe arrow function::bar(error)"] = {
+        errors = {
+          {
+            column = 24,
+            line = 8,
+            message = "expected true to equal false\n  at /neotest-vitest/spec/basic.test.ts:9:25",
+          },
+        },
+        location = {
+          column = 43,
+          line = 8,
+        },
+        short = "bar(error): failed\nexpected true to equal false\n  at /neotest-vitest/spec/basic.test.ts:9:25",
+        status = "failed",
+      },
+      ["spec/basic.test.ts::describe arrow function::foo"] = {
+        short = "foo: skipped",
+        status = "skipped",
+      },
+      ["spec/basic.test.ts::describe vanilla function::bar"] = {
+        short = "bar: skipped",
+        status = "skipped",
+      },
+    }
+    assert.is.same(expected_result, result)
+  end)
+
   it("test", function()
     local json = {
       success = true,
@@ -52,6 +121,7 @@ describe("parse json reporter to result", function()
     }
     assert.is.same(expected_result, result)
   end)
+
   it("namespace", function()
     local json = {
       success = false,
