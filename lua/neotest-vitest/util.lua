@@ -244,6 +244,15 @@ function M.cleanAnsi(s)
     :gsub("\x1b%[%d+;%d+m", "")
     :gsub("\x1b%[%d+m", "")
 end
+
+function M.findErrorPosition(file, errStr)
+  -- Look for: /path/to/file.js:123:987
+  local regexp = file:gsub("([^%w])", "%%%1") .. "%:(%d+)%:(%d+)"
+  local _, _, errLine, errColumn = errStr:find(regexp)
+
+  return errLine, errColumn
+end
+
 function M.parsed_json_to_results(data, output_file, consoleOut)
   local tests = {}
 
@@ -285,9 +294,19 @@ function M.parsed_json_to_results(data, output_file, consoleOut)
         for i, failMessage in ipairs(assertionResult.failureMessages) do
           local msg = M.cleanAnsi(failMessage)
 
+          local errorLine, errorColumn = M.findErrorPosition(testFn, msg)
+
           errors[i] = {
-            line = (assertionResult.location and assertionResult.location.line - 1 or nil),
-            column = (assertionResult.location and assertionResult.location.column or nil),
+            line = (
+              (errorLine and errorLine - 1)
+              or (assertionResult.location and assertionResult.location.line - 1)
+              or nil
+            ),
+            column = (
+              (errorColumn and errorColumn - 1)
+              or (assertionResult.location and assertionResult.location.column)
+              or nil
+            ),
             message = msg,
           }
 
