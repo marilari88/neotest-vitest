@@ -289,12 +289,13 @@ function adapter.build_spec(args)
     table.insert(names, 1, tree:data().name)
     tree = tree:parent() --[[@as neotest.Tree]]
   end
-  local testNamePattern = table.concat(names, " ")
+  -- Vitest 5 uses " > " between suites and tests; older versions use " ".
+  local testNamePattern = table.concat(vim.tbl_map(escapeTestPattern, names), "\\s(?:>\\s)?")
 
   if #testNamePattern == 0 then
     testNamePattern = ".*"
   else
-    testNamePattern = "^\\s?" .. escapeTestPattern(testNamePattern)
+    testNamePattern = "^\\s?" .. testNamePattern
   end
 
   local pos = args.tree:data()
