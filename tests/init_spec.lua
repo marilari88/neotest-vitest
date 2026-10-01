@@ -224,7 +224,10 @@ describe("build_spec", function()
         return pos.id
       end)
       local spec = plugin.build_spec({ tree = tree:children()[1]:children()[1] })
-      assert.contains(spec.command, "--testNamePattern=^\\s?first\\slevel\\ssecond\\slevel")
+      assert.contains(
+        spec.command,
+        "--testNamePattern=^\\s?first\\slevel\\s(?:>\\s)?second\\slevel"
+      )
     end)
     async.it("test level", function()
       local positions = plugin.discover_positions("./spec/nested.test.ts"):to_list()
@@ -232,7 +235,22 @@ describe("build_spec", function()
         return pos.id
       end)
       local spec = plugin.build_spec({ tree = tree:children()[1]:children()[1]:children()[1] })
-      assert.contains(spec.command, "--testNamePattern=^\\s?first\\slevel\\ssecond\\slevel\\sfoo$")
+      assert.contains(
+        spec.command,
+        "--testNamePattern=^\\s?first\\slevel\\s(?:>\\s)?second\\slevel\\s(?:>\\s)?foo$"
+      )
+    end)
+
+    async.it("escapes names without treating their spaces as suite boundaries", function()
+      local positions = plugin.discover_positions("./spec/separators.test.ts"):to_list()
+      local tree = Tree.from_list(positions, function(pos)
+        return pos.id
+      end)
+      local spec = plugin.build_spec({ tree = tree:children()[1]:children()[1]:children()[1] })
+      assert.contains(
+        spec.command,
+        "--testNamePattern=^\\s?outer\\s>\\ssuite\\s(?:>\\s)?inner\\s\\(suite\\)\\s(?:>\\s)?adds\\s1\\s\\+\\s2$"
+      )
     end)
     async.it("test level 2", function()
       local positions = plugin.discover_positions("./spec/nested.test.ts"):to_list()
@@ -242,7 +260,7 @@ describe("build_spec", function()
       local spec = plugin.build_spec({ tree = tree:children()[1]:children()[1]:children()[2] })
       assert.contains(
         spec.command,
-        "--testNamePattern=^\\s?first\\slevel\\ssecond\\slevel\\sbar\\(error\\)$"
+        "--testNamePattern=^\\s?first\\slevel\\s(?:>\\s)?second\\slevel\\s(?:>\\s)?bar\\(error\\)$"
       )
     end)
   end)
