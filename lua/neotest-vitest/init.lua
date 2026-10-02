@@ -113,7 +113,7 @@ end
 ---@async
 ---@return neotest.Tree | nil
 function adapter.discover_positions(path)
-  local query = [[
+  local query = [[ ;; query
     ; -- Namespaces --
     ; Matches: `describe('context')`
     ((call_expression
@@ -167,7 +167,19 @@ function adapter.discover_positions(path)
       arguments: (arguments (string (string_fragment) @test.name) (arrow_function))
     )) @test.definition
   ]]
-  query = query .. string.gsub(query, "arrow_function", "function_expression")
+  ---@note This portion of the query lives in its own variable because there's no arrow function to replace
+  local call_expression_query = [[ ; query
+    ;; Matches call expressions as the test definition: `it('can do something with A', TestFactory.build('A'))`
+    ((call_expression
+      function: (identifier) @func_name (#any-of? @func_name "it" "test")
+      arguments: (arguments
+        (string
+          (string_fragment) @test.name)
+        (call_expression)))) @test.definition
+  ]]
+  query = query
+    .. string.gsub(query, "arrow_function", "function_expression")
+    .. call_expression_query
   return lib.treesitter.parse_positions(path, query, { nested_tests = true })
 end
 
