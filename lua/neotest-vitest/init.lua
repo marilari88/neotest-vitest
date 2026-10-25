@@ -11,6 +11,7 @@ local util = require("neotest-vitest.util")
 ---@field cwd? string|fun(): string
 ---@field filter_dir? fun(name: string, relpath: string, root: string): boolean
 ---@field is_test_file? fun(file_path: string): boolean
+---@field enableConfigDiscovery? boolean Use Vitest's list CLI (requires Vitest 3+ and Neovim 0.10+).
 
 ---@class neotest.Adapter
 local adapter = { name = "neotest-vitest" }
@@ -207,11 +208,11 @@ local function getVitestConfig(path)
   local possibleVitestConfigNames = {
     "vitest.config.ts",
     "vitest.config.js",
-    "vite.config.ts",
-    "vite.config.js",
     -- `.mts,.mjs` are sometimes needed (https://vitejs.dev/guide/migration.html#deprecate-cjs-node-api)
     "vitest.config.mts",
     "vitest.config.mjs",
+    "vite.config.ts",
+    "vite.config.js",
     "vite.config.mts",
     "vite.config.mjs",
   }
@@ -273,6 +274,24 @@ end
 ---@return string|nil
 local function getCwd(path)
   return vitestConfigPattern(path) or util.find_node_modules_ancestor(path)
+end
+
+---Clear cached file lists after adding tests or changing configuration.
+function adapter.refresh()
+  require("neotest-vitest.discovery").refresh()
+end
+
+---@async
+local function isConfiguredTestFile(path)
+  if not path or not hasVitestDependency(path) then
+    return false
+  end
+  return require("neotest-vitest.discovery").contains(path, {
+    command = getVitestCommand(path),
+    config = getVitestConfig(path),
+    cwd = getCwd(path) or adapter.root(path),
+    env = getEnv({}),
+  })
 end
 
 ---@param args neotest.RunArgs
@@ -400,6 +419,8 @@ local is_callable = function(obj)
   return type(obj) == "function" or (type(obj) == "table" and obj.__call)
 end
 
+local defaultIsTestFile = adapter.is_test_file
+
 setmetatable(adapter, {
   ---@param opts neotest.VitestOptions
   __call = function(_, opts)
@@ -443,7 +464,13 @@ setmetatable(adapter, {
       adapter.is_test_file = function(file_path)
         return hasVitestDependency(file_path) and opts.is_test_file(file_path)
       end
+    elseif opts.enableConfigDiscovery then
+      adapter.is_test_file = isConfiguredTestFile
+    else
+      adapter.is_test_file = defaultIsTestFile
     end
+
+    adapter.refresh()
 
     return adapter
   end,
